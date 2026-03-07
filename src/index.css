@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 236 38% 8%;
+  --foreground: 38 60% 94%;
+  --card: 234 27% 14%;
+  --card-foreground: 30 40% 94%;
+  --border: 35 42% 28%;
+  --muted: 235 23% 18%;
+  --muted-foreground: 33 25% 72%;
+  --primary: 41 75% 58%;
+  --primary-foreground: 230 48% 10%;
+  --secondary: 190 50% 35%;
+  --secondary-foreground: 35 70% 95%;
+  --accent: 153 40% 33%;
+  --accent-foreground: 45 65% 94%;
+  --destructive: 2 73% 54%;
+  --destructive-foreground: 0 0% 98%;
+}
+
+* {
+  @apply border-border;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-background text-foreground font-body antialiased;
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(212, 175, 55, 0.12), transparent 30%),
+    radial-gradient(circle at 80% 25%, rgba(42, 157, 143, 0.14), transparent 28%),
+    linear-gradient(150deg, #100d1f 0%, #0c0d1a 45%, #151f2d 100%);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  @apply font-display tracking-wide;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.8), rgba(42, 157, 143, 0.7));
+  border-radius: 999px;
+}
+
+@layer components {
+  .ornate-card {
+    @apply rounded-2xl border border-border/70 bg-card/80 shadow-[0_14px_38px_-18px_rgba(0,0,0,0.75)] backdrop-blur;
+  }
+
+  .golden-text {
+    background: linear-gradient(90deg, #f7e7b0 15%, #d4af37 45%, #f8eec4 80%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 3.5s linear infinite;
+  }
+}

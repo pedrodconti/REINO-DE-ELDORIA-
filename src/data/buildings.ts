@@ -1,0 +1,58 @@
+import type { BuildingDefinition } from '@/types/game';
+
+export const BUILDINGS: BuildingDefinition[] = [
+  {
+    id: 'humble_hut',
+    name: 'Cabana do Coletor',
+    flavor: 'Camponeses recolhem fragmentos nos campos enevoados.',
+    baseCost: 15,
+    baseProduction: 0.2,
+    costGrowth: 1.15,
+    unlockAtTotalEarned: 0,
+  },
+  {
+    id: 'lumber_mill',
+    name: 'Serraria Runica',
+    flavor: 'Troncos encantados alimentam a economia da vila.',
+    baseCost: 120,
+    baseProduction: 1.5,
+    costGrowth: 1.15,
+    unlockAtTotalEarned: 100,
+  },
+  {
+    id: 'alchemist_lab',
+    name: 'Oficina Alquimica',
+    flavor: 'Alquimistas refinam eter bruto em energia estavel.',
+    baseCost: 1100,
+    baseProduction: 8,
+    costGrowth: 1.15,
+    unlockAtTotalEarned: 1200,
+  },
+  {
+    id: 'mage_tower',
+    name: 'Torre dos Arcanistas',
+    flavor: 'Magos canalizam correntes de mana para todo o reino.',
+    baseCost: 12000,
+    baseProduction: 45,
+    costGrowth: 1.15,
+    unlockAtTotalEarned: 15000,
+  },
+  {
+    id: 'dragon_keep',
+    name: 'Fortaleza Draconica',
+    flavor: 'Dracos guardioes multiplicam a colheita com fogo ancestral.',
+    baseCost: 130000,
+    baseProduction: 260,
+    costGrowth: 1.15,
+    unlockAtTotalEarned: 220000,
+  },
+  {
+    id: 'celestial_forge',
+    name: 'Forja Celestial',
+    flavor: 'Mestres runicos convertem estrelas em poder permanente.',
+    baseCost: 1500000,
+    baseProduction: 1500,
+    costGrowth: 1.15,
+    unlockAtTotalEarned: 2500000,
+  },
+];
