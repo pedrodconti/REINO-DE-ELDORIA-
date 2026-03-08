@@ -5,6 +5,7 @@ import type {
   GameProgress,
   GameSettings,
   GameStats,
+  ItemPassiveBonuses,
   RebirthUpgradeLevels,
 } from '@/types/game';
 
@@ -12,6 +13,19 @@ export const defaultSettings: GameSettings = {
   soundMuted: false,
   autosaveEnabled: true,
   reduceMotion: false,
+};
+
+export const defaultItemPassiveBonuses: ItemPassiveBonuses = {
+  clickFlat: 0,
+  passiveFlat: 0,
+  globalMultiplierBonus: 0,
+  clickCritChance: 0,
+  buildingDiscount: 0,
+  rebirthRewardBonus: 0,
+  itemDropBonus: 0,
+  offlineIncomeBonus: 0,
+  rareBoxSpawnBonus: 0,
+  boxCooldownReduction: 0,
 };
 
 export function createEmptyBuildings(): BuildingsOwned {
@@ -43,6 +57,8 @@ export function createInitialStats(): GameStats {
     upgradesPurchased: 0,
     playTimeSeconds: 0,
     currentRunEarned: 0,
+    boxesOpened: 0,
+    tradesCompleted: 0,
   };
 }
 

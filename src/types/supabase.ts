@@ -6,6 +6,13 @@ import type {
   RebirthUpgradeId,
   UpgradeId,
 } from '@/types/game';
+import type {
+  ItemCategory,
+  ItemPassiveType,
+  ItemRarity,
+  LootBoxKey,
+  TradeStatus,
+} from '@/types/systems';
 
 export type NumericValue = number | string;
 
@@ -67,4 +74,88 @@ export interface GameSaveUpsertPayload {
   achievements: AchievementId[];
   stats: GameSaveStatsPayload;
   last_save_at: string;
+}
+
+export interface LootBoxRow {
+  id: string;
+  box_key: LootBoxKey | string;
+  name: string;
+  description: string;
+  rarity: string;
+  price: NumericValue;
+  spawn_weight: number;
+  duration_minutes: number;
+  min_gap_minutes: number;
+  max_gap_minutes: number;
+  active: boolean;
+  visual: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ItemDefinitionRow {
+  id: string;
+  item_key: string;
+  name: string;
+  description: string;
+  rarity: ItemRarity;
+  category: ItemCategory;
+  passive_type: ItemPassiveType;
+  passive_value: NumericValue;
+  stackable: boolean;
+  tradable: boolean;
+  base_value: NumericValue;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface UserItemRow {
+  id: string;
+  user_id: string;
+  item_definition_id: string;
+  quantity: number;
+  is_equipped: boolean;
+  equipped_slot: string | null;
+  is_locked_in_trade: boolean;
+  is_marked_tradable: boolean;
+  acquired_at: string;
+  metadata: Record<string, unknown>;
+  updated_at: string;
+}
+
+export interface LeaderboardCacheRow {
+  user_id: string;
+  username: string;
+  total_resource: NumericValue;
+  passive_income: NumericValue;
+  rebirth_count: number;
+  boxes_opened: number;
+  inventory_value: NumericValue;
+  highest_item_rarity: ItemRarity | null;
+  highest_item_tier: number;
+  updated_at: string;
+}
+
+export interface TradeRow {
+  id: string;
+  proposer_user_id: string;
+  receiver_user_id: string;
+  status: TradeStatus;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+  responded_at: string | null;
+}
+
+export interface TradeItemRow {
+  id: string;
+  trade_id: string;
+  owner_user_id: string;
+  user_item_id: string;
+  quantity: number;
+  item_definition_id: string;
+  item_name: string;
+  item_rarity: ItemRarity;
+  item_category: ItemCategory;
+  created_at: string;
 }

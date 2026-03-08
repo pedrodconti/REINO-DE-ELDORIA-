@@ -126,6 +126,8 @@ export function mapDatabaseToProgress(
       upgradesPurchased: toNumber(row.stats?.upgradesPurchased, 0),
       playTimeSeconds: toNumber(row.stats?.playTimeSeconds, 0),
       currentRunEarned: toNumber(row.stats?.currentRunEarned, 0),
+      boxesOpened: toNumber(row.stats?.boxesOpened, 0),
+      tradesCompleted: toNumber(row.stats?.tradesCompleted, 0),
     },
     settings: {
       soundMuted: settings?.soundMuted ?? fallbackSettings.soundMuted,

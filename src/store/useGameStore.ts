@@ -10,15 +10,16 @@ import type {
   BuildingId,
   GameProgress,
   GameSettings,
+  ItemPassiveBonuses,
   LoadFeedback,
   RebirthUpgradeId,
   UpgradeId,
 } from '@/types/game';
 import { ensureGameSave, getRebirthUpgrades, saveGame, saveRebirthUpgrades } from '@/services/gameSaveService';
-import { createEmptyBuildings, createInitialProgress } from '@/utils/gameDefaults';
+import { createEmptyBuildings, createInitialProgress, defaultItemPassiveBonuses } from '@/utils/gameDefaults';
 import {
-  calculateBuildingCost,
   calculateDerivedProgress,
+  calculateEffectiveBuildingCost,
   calculateOfflineGain,
   calculateRebirthReward,
   calculateRebirthUpgradeCost,
@@ -26,12 +27,15 @@ import {
   collectUnlockedAchievements,
   isBuildingUnlocked,
   isUpgradeUnlocked,
+  normalizeItemBonuses,
   roundToGamePrecision,
 } from '@/utils/gameMath';
 import { mapDatabaseToProgress } from '@/utils/gameMappers';
 
 interface GameStore {
   progress: GameProgress;
+  itemPassiveBonuses: ItemPassiveBonuses;
+  critChance: number;
   isLoading: boolean;
   isLoaded: boolean;
   isSaving: boolean;
@@ -39,7 +43,8 @@ interface GameStore {
   error: string | null;
   offlineReward: number;
   pendingAchievementIds: AchievementId[];
-  loadForUser: (userId: string) => Promise<LoadFeedback>;
+  loadForUser: (userId: string, force?: boolean, applyOfflineReward?: boolean) => Promise<LoadFeedback>;
+  reloadFromCloud: (userId: string) => Promise<LoadFeedback>;
   saveForUser: (userId: string) => Promise<ActionFeedback>;
   clickMainResource: () => number;
   tick: (deltaSeconds: number) => void;
@@ -49,6 +54,7 @@ interface GameStore {
   performRebirth: () => ActionFeedback;
   previewRebirthReward: () => number;
   setSetting: <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => void;
+  setItemPassiveBonuses: (bonuses?: Partial<ItemPassiveBonuses>) => void;
   acknowledgeOfflineReward: () => void;
   consumeAchievementQueue: () => AchievementId[];
   resetCurrentRun: () => void;
@@ -64,24 +70,28 @@ function formatGameError(error: unknown): string {
   return 'Falha inesperada ao processar sua solicitacao.';
 }
 
-function applyDerived(progress: GameProgress): GameProgress {
+function applyDerived(progress: GameProgress, itemBonuses: ItemPassiveBonuses) {
   const derived = calculateDerivedProgress({
     buildings: progress.buildings,
     purchasedUpgrades: progress.upgrades,
     rebirthUpgrades: progress.rebirthUpgrades,
     rebirthCount: progress.rebirthCount,
+    itemBonuses,
   });
 
   return {
-    ...progress,
-    clickPower: roundToGamePrecision(derived.clickPower),
-    passiveIncome: roundToGamePrecision(derived.passiveIncome),
-    globalMultiplier: roundToGamePrecision(derived.globalMultiplier),
-    permanentMultipliers: {
-      click: roundToGamePrecision(derived.permanentMultipliers.click),
-      passive: roundToGamePrecision(derived.permanentMultipliers.passive),
-      global: roundToGamePrecision(derived.permanentMultipliers.global),
+    progress: {
+      ...progress,
+      clickPower: roundToGamePrecision(derived.clickPower),
+      passiveIncome: roundToGamePrecision(derived.passiveIncome),
+      globalMultiplier: roundToGamePrecision(derived.globalMultiplier),
+      permanentMultipliers: {
+        click: roundToGamePrecision(derived.permanentMultipliers.click),
+        passive: roundToGamePrecision(derived.permanentMultipliers.passive),
+        global: roundToGamePrecision(derived.permanentMultipliers.global),
+      },
     },
+    critChance: derived.critChance,
   };
 }
 
@@ -113,7 +123,7 @@ function unlockAchievements(progress: GameProgress): { progress: GameProgress; n
 }
 
 function createRunReset(progress: GameProgress): GameProgress {
-  const reset = createInitialProgress({
+  return createInitialProgress({
     rebirthCount: progress.rebirthCount,
     rebirthCurrency: progress.rebirthCurrency,
     rebirthUpgrades: { ...progress.rebirthUpgrades },
@@ -125,12 +135,12 @@ function createRunReset(progress: GameProgress): GameProgress {
     },
     settings: { ...progress.settings },
   });
-
-  return applyDerived(reset);
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
-  progress: applyDerived(createInitialProgress()),
+  progress: createInitialProgress(),
+  itemPassiveBonuses: { ...defaultItemPassiveBonuses },
+  critChance: 0,
   isLoading: false,
   isLoaded: false,
   isSaving: false,
@@ -139,9 +149,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   offlineReward: 0,
   pendingAchievementIds: [],
 
-  loadForUser: async (userId) => {
+  loadForUser: async (userId, force = false, applyOfflineReward = true) => {
     const current = get();
-    if (current.isLoaded && current.loadedUserId === userId) {
+    if (!force && current.isLoaded && current.loadedUserId === userId) {
       return {
         ok: true,
         message: 'Progresso ja carregado.',
@@ -156,10 +166,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const rebirthRows = await getRebirthUpgrades(userId);
 
       let progress = mapDatabaseToProgress(saveRow, rebirthRows, existingSettings);
-      progress = applyDerived(progress);
+      const initialDerived = applyDerived(progress, get().itemPassiveBonuses);
+      progress = initialDerived.progress;
 
-      const secondsOffline = calculateSecondsOffline(progress.lastSaveAt);
-      const offlineGain = calculateOfflineGain(progress.passiveIncome, secondsOffline);
+      const secondsOffline = applyOfflineReward ? calculateSecondsOffline(progress.lastSaveAt) : 0;
+      const offlineGain = applyOfflineReward
+        ? calculateOfflineGain(
+            progress.passiveIncome,
+            secondsOffline,
+            get().itemPassiveBonuses.offlineIncomeBonus,
+          )
+        : 0;
 
       if (offlineGain > 0) {
         progress = {
@@ -177,8 +194,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const unlockedResult = unlockAchievements(progress);
       const pendingQueue = [...get().pendingAchievementIds, ...unlockedResult.newlyUnlocked];
 
+      const derivedResult = applyDerived(unlockedResult.progress, get().itemPassiveBonuses);
+
       set({
-        progress: unlockedResult.progress,
+        progress: derivedResult.progress,
+        critChance: derivedResult.critChance,
         isLoading: false,
         isLoaded: true,
         loadedUserId: userId,
@@ -204,6 +224,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       };
     }
   },
+
+  reloadFromCloud: async (userId) => get().loadForUser(userId, true, false),
 
   saveForUser: async (userId) => {
     set({ isSaving: true, error: null });
@@ -240,7 +262,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   clickMainResource: () => {
-    const gain = get().progress.clickPower;
+    const baseGain = get().progress.clickPower;
+    const isCritical = Math.random() < get().critChance;
+    const gain = isCritical ? baseGain * 2 : baseGain;
 
     set((state) => {
       let progress: GameProgress = {
@@ -309,7 +333,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const state = get();
     const currentOwned = state.progress.buildings[buildingId] ?? 0;
-    const cost = calculateBuildingCost(building.baseCost, currentOwned, building.costGrowth);
+    const cost = calculateEffectiveBuildingCost(
+      building.baseCost,
+      currentOwned,
+      building.costGrowth,
+      state.itemPassiveBonuses.buildingDiscount,
+    );
 
     if (!isBuildingUnlocked(state.progress.totalResourceEarned, building.unlockAtTotalEarned)) {
       return {
@@ -326,14 +355,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     set((currentState) => {
+      const owned = currentState.progress.buildings[buildingId] ?? 0;
+      const effectiveCost = calculateEffectiveBuildingCost(
+        building.baseCost,
+        owned,
+        building.costGrowth,
+        currentState.itemPassiveBonuses.buildingDiscount,
+      );
+
+      if (currentState.progress.resourceAmount < effectiveCost) {
+        return {};
+      }
+
       const nextBuildings = {
         ...currentState.progress.buildings,
-        [buildingId]: currentOwned + 1,
+        [buildingId]: owned + 1,
       };
 
       let progress: GameProgress = {
         ...currentState.progress,
-        resourceAmount: currentState.progress.resourceAmount - cost,
+        resourceAmount: currentState.progress.resourceAmount - effectiveCost,
         buildings: nextBuildings,
         stats: {
           ...currentState.progress.stats,
@@ -341,13 +382,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
         },
       };
 
-      progress = applyDerived(progress);
+      const derived = applyDerived(progress, currentState.itemPassiveBonuses);
+      progress = derived.progress;
 
       const unlockedResult = unlockAchievements(progress);
       progress = unlockedResult.progress;
 
       return {
         progress,
+        critChance: derived.critChance,
         pendingAchievementIds: [...currentState.pendingAchievementIds, ...unlockedResult.newlyUnlocked],
       };
     });
@@ -402,13 +445,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
         },
       };
 
-      progress = applyDerived(progress);
+      const derived = applyDerived(progress, currentState.itemPassiveBonuses);
+      progress = derived.progress;
 
       const unlockedResult = unlockAchievements(progress);
       progress = unlockedResult.progress;
 
       return {
         progress,
+        critChance: derived.critChance,
         pendingAchievementIds: [...currentState.pendingAchievementIds, ...unlockedResult.newlyUnlocked],
       };
     });
@@ -460,10 +505,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         rebirthUpgrades: nextLevels,
       };
 
-      progress = applyDerived(progress);
+      const derived = applyDerived(progress, currentState.itemPassiveBonuses);
+      progress = derived.progress;
 
       return {
         progress,
+        critChance: derived.critChance,
       };
     });
 
@@ -475,7 +522,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   performRebirth: () => {
     const state = get();
-    const reward = calculateRebirthReward(state.progress.stats.currentRunEarned, state.progress.rebirthCount);
+    const reward = calculateRebirthReward(
+      state.progress.stats.currentRunEarned,
+      state.progress.rebirthCount,
+      state.itemPassiveBonuses.rebirthRewardBonus,
+    );
 
     if (reward <= 0) {
       return {
@@ -485,10 +536,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     set((currentState) => {
-      const baseReset = createRunReset(currentState.progress);
-
       let progress: GameProgress = {
-        ...baseReset,
+        ...createRunReset(currentState.progress),
         rebirthCount: currentState.progress.rebirthCount + 1,
         rebirthCurrency: currentState.progress.rebirthCurrency + reward,
         stats: {
@@ -497,13 +546,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
         },
       };
 
-      progress = applyDerived(progress);
+      const derived = applyDerived(progress, currentState.itemPassiveBonuses);
+      progress = derived.progress;
 
       const unlockedResult = unlockAchievements(progress);
       progress = unlockedResult.progress;
 
       return {
         progress,
+        critChance: derived.critChance,
         offlineReward: 0,
         pendingAchievementIds: [...currentState.pendingAchievementIds, ...unlockedResult.newlyUnlocked],
       };
@@ -517,7 +568,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   previewRebirthReward: () => {
     const progress = get().progress;
-    return calculateRebirthReward(progress.stats.currentRunEarned, progress.rebirthCount);
+    return calculateRebirthReward(
+      progress.stats.currentRunEarned,
+      progress.rebirthCount,
+      get().itemPassiveBonuses.rebirthRewardBonus,
+    );
   },
 
   setSetting: (key, value) => {
@@ -530,6 +585,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
         },
       },
     }));
+  },
+
+  setItemPassiveBonuses: (bonuses) => {
+    set((state) => {
+      const normalized = normalizeItemBonuses(bonuses ?? defaultItemPassiveBonuses);
+      const derived = applyDerived(state.progress, normalized);
+
+      return {
+        itemPassiveBonuses: normalized,
+        progress: derived.progress,
+        critChance: derived.critChance,
+      };
+    });
   },
 
   acknowledgeOfflineReward: () => {
@@ -547,25 +615,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   resetCurrentRun: () => {
-    set((state) => ({
-      progress: createRunReset(state.progress),
-      offlineReward: 0,
-      error: null,
-    }));
+    set((state) => {
+      const derived = applyDerived(createRunReset(state.progress), state.itemPassiveBonuses);
+      return {
+        progress: derived.progress,
+        critChance: derived.critChance,
+        offlineReward: 0,
+        error: null,
+      };
+    });
   },
 
   resetAllLocalProgress: () => {
-    set((state) => ({
-      progress: applyDerived(
+    set((state) => {
+      const derived = applyDerived(
         createInitialProgress({
           settings: { ...state.progress.settings },
           buildings: createEmptyBuildings(),
         }),
-      ),
-      offlineReward: 0,
-      pendingAchievementIds: [],
-      error: null,
-    }));
+        state.itemPassiveBonuses,
+      );
+
+      return {
+        progress: derived.progress,
+        critChance: derived.critChance,
+        offlineReward: 0,
+        pendingAchievementIds: [],
+        error: null,
+      };
+    });
   },
 
   clearError: () => {

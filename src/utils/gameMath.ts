@@ -7,6 +7,7 @@ import type {
   AchievementId,
   BuildingsOwned,
   GameStats,
+  ItemPassiveBonuses,
   RebirthUpgradeLevels,
   RebirthUpgradeType,
   UpgradeId,
@@ -15,8 +16,50 @@ import type {
 export const DEFAULT_BUILDING_COST_GROWTH = 1.15;
 const MAX_OFFLINE_SECONDS = 60 * 60 * 8;
 
+const emptyItemBonuses: ItemPassiveBonuses = {
+  clickFlat: 0,
+  passiveFlat: 0,
+  globalMultiplierBonus: 0,
+  clickCritChance: 0,
+  buildingDiscount: 0,
+  rebirthRewardBonus: 0,
+  itemDropBonus: 0,
+  offlineIncomeBonus: 0,
+  rareBoxSpawnBonus: 0,
+  boxCooldownReduction: 0,
+};
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+export function normalizeItemBonuses(input?: Partial<ItemPassiveBonuses> | null): ItemPassiveBonuses {
+  return {
+    clickFlat: input?.clickFlat ?? 0,
+    passiveFlat: input?.passiveFlat ?? 0,
+    globalMultiplierBonus: input?.globalMultiplierBonus ?? 0,
+    clickCritChance: clamp(input?.clickCritChance ?? 0, 0, 0.75),
+    buildingDiscount: clamp(input?.buildingDiscount ?? 0, 0, 0.5),
+    rebirthRewardBonus: clamp(input?.rebirthRewardBonus ?? 0, 0, 2),
+    itemDropBonus: clamp(input?.itemDropBonus ?? 0, 0, 3),
+    offlineIncomeBonus: clamp(input?.offlineIncomeBonus ?? 0, 0, 2),
+    rareBoxSpawnBonus: clamp(input?.rareBoxSpawnBonus ?? 0, 0, 1),
+    boxCooldownReduction: clamp(input?.boxCooldownReduction ?? 0, 0, 0.75),
+  };
+}
+
 export function calculateBuildingCost(baseCost: number, owned: number, growth = DEFAULT_BUILDING_COST_GROWTH): number {
   return baseCost * growth ** owned;
+}
+
+export function calculateEffectiveBuildingCost(
+  baseCost: number,
+  owned: number,
+  growth: number,
+  buildingDiscount = 0,
+): number {
+  const rawCost = calculateBuildingCost(baseCost, owned, growth);
+  return rawCost * (1 - clamp(buildingDiscount, 0, 0.5));
 }
 
 export function calculateRebirthUpgradeCost(baseCost: number, currentLevel: number, growth: number): number {
@@ -57,10 +100,7 @@ export function isUpgradeUnlocked(
   return buildings[upgrade.requiresBuilding.id] >= upgrade.requiresBuilding.quantity;
 }
 
-function getPurchasedMultiplier(
-  ids: UpgradeId[],
-  type: 'click' | 'passive' | 'global',
-): number {
+function getPurchasedMultiplier(ids: UpgradeId[], type: 'click' | 'passive' | 'global'): number {
   const owned = new Set(ids);
   return UPGRADES.filter((upgrade) => upgrade.type === type && owned.has(upgrade.id)).reduce(
     (acc, upgrade) => acc * upgrade.multiplier,
@@ -80,6 +120,7 @@ export function calculateDerivedProgress(input: {
   purchasedUpgrades: UpgradeId[];
   rebirthUpgrades: RebirthUpgradeLevels;
   rebirthCount: number;
+  itemBonuses?: ItemPassiveBonuses;
 }): {
   clickPower: number;
   passiveIncome: number;
@@ -89,7 +130,10 @@ export function calculateDerivedProgress(input: {
     passive: number;
     global: number;
   };
+  critChance: number;
 } {
+  const itemBonuses = normalizeItemBonuses(input.itemBonuses ?? emptyItemBonuses);
+
   const basePassiveIncome = BUILDINGS.reduce((acc, building) => {
     const amount = input.buildings[building.id] ?? 0;
     return acc + amount * building.baseProduction;
@@ -103,9 +147,13 @@ export function calculateDerivedProgress(input: {
   const permanentPassive = getPermanentBonus(input.rebirthUpgrades, 'passive');
   const permanentGlobal = getPermanentBonus(input.rebirthUpgrades, 'global') * (1 + input.rebirthCount * 0.02);
 
-  const globalMultiplier = upgradeGlobalMultiplier * permanentGlobal;
-  const clickPower = 1 * clickUpgradeMultiplier * permanentClick * globalMultiplier;
-  const passiveIncome = basePassiveIncome * passiveUpgradeMultiplier * permanentPassive * globalMultiplier;
+  const itemGlobalMultiplier = 1 + itemBonuses.globalMultiplierBonus;
+  const globalMultiplier = upgradeGlobalMultiplier * permanentGlobal * itemGlobalMultiplier;
+  const clickBase = 1 + itemBonuses.clickFlat;
+  const passiveBase = basePassiveIncome + itemBonuses.passiveFlat;
+
+  const clickPower = clickBase * clickUpgradeMultiplier * permanentClick * globalMultiplier;
+  const passiveIncome = passiveBase * passiveUpgradeMultiplier * permanentPassive * globalMultiplier;
 
   return {
     clickPower,
@@ -116,22 +164,33 @@ export function calculateDerivedProgress(input: {
       passive: permanentPassive,
       global: permanentGlobal,
     },
+    critChance: itemBonuses.clickCritChance,
   };
 }
 
-export function calculateRebirthReward(currentRunEarned: number, rebirthCount: number): number {
+export function calculateRebirthReward(
+  currentRunEarned: number,
+  rebirthCount: number,
+  rebirthRewardBonus = 0,
+): number {
   const normalized = Math.max(0, currentRunEarned) / 50000;
   if (normalized < 1) {
     return 0;
   }
 
   const streakBonus = 1 + rebirthCount * 0.05;
-  return Math.floor(Math.sqrt(normalized) * streakBonus);
+  const itemBonus = 1 + clamp(rebirthRewardBonus, 0, 2);
+  return Math.floor(Math.sqrt(normalized) * streakBonus * itemBonus);
 }
 
-export function calculateOfflineGain(passiveIncome: number, secondsOffline: number): number {
+export function calculateOfflineGain(
+  passiveIncome: number,
+  secondsOffline: number,
+  offlineIncomeBonus = 0,
+): number {
   const clampedSeconds = Math.min(Math.max(0, secondsOffline), MAX_OFFLINE_SECONDS);
-  return passiveIncome * clampedSeconds;
+  const bonusMultiplier = 1 + clamp(offlineIncomeBonus, 0, 2);
+  return passiveIncome * clampedSeconds * bonusMultiplier;
 }
 
 export function calculateSecondsOffline(lastSaveAt: string | null): number {

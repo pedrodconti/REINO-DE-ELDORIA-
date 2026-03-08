@@ -1,4 +1,4 @@
-import { Gauge, Hourglass, RotateCcw, Settings, Shield, Sparkles } from 'lucide-react';
+import { Box, Gauge, Hourglass, RotateCcw, Settings, Shield, Sparkles, Swords, Trophy, Vault } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -16,6 +16,10 @@ import { formatLargeNumber, formatPerSecond } from '@/utils/format';
 
 const navLinks = [
   { to: '/app', label: 'Painel', icon: Gauge },
+  { to: '/app/boxes', label: 'Caixas', icon: Box },
+  { to: '/app/inventory', label: 'Inventario', icon: Vault },
+  { to: '/app/ranking', label: 'Ranking', icon: Trophy },
+  { to: '/app/trade', label: 'Trade', icon: Swords },
   { to: '/app/rebirth', label: 'Nova Era', icon: RotateCcw },
   { to: '/app/stats', label: 'Estatisticas', icon: Shield },
   { to: '/app/settings', label: 'Configuracoes', icon: Settings },

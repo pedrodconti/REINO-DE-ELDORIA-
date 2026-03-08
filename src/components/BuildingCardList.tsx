@@ -8,12 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { BUILDINGS } from '@/data/buildings';
 import { useGameStore } from '@/store/useGameStore';
-import { calculateBuildingCost, getTotalBuildingsOwned, isBuildingUnlocked } from '@/utils/gameMath';
+import { calculateEffectiveBuildingCost, getTotalBuildingsOwned, isBuildingUnlocked } from '@/utils/gameMath';
 import { formatLargeNumber, formatPerSecond } from '@/utils/format';
 
 export function BuildingCardList() {
   const progress = useGameStore((state) => state.progress);
   const buyBuilding = useGameStore((state) => state.buyBuilding);
+  const buildingDiscount = useGameStore((state) => state.itemPassiveBonuses.buildingDiscount);
 
   const basePassive = BUILDINGS.reduce((acc, building) => {
     const count = progress.buildings[building.id] ?? 0;
@@ -30,14 +31,22 @@ export function BuildingCardList() {
           <Hammer className="h-5 w-5 text-primary" />
           Construcoes
         </CardTitle>
-        <CardDescription>{totalOwned.toLocaleString('pt-BR')} estruturas ativas</CardDescription>
+        <CardDescription>
+          {totalOwned.toLocaleString('pt-BR')} estruturas ativas
+          {buildingDiscount > 0 ? ` • desconto: ${(buildingDiscount * 100).toFixed(1)}%` : ''}
+        </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-3">
         <TooltipProvider>
           {BUILDINGS.map((building, index) => {
             const owned = progress.buildings[building.id] ?? 0;
-            const cost = calculateBuildingCost(building.baseCost, owned, building.costGrowth);
+            const cost = calculateEffectiveBuildingCost(
+              building.baseCost,
+              owned,
+              building.costGrowth,
+              buildingDiscount,
+            );
             const unlocked = isBuildingUnlocked(progress.totalResourceEarned, building.unlockAtTotalEarned);
             const canAfford = progress.resourceAmount >= cost;
             const estimatedProduction = building.baseProduction * Math.max(owned, 1) * passiveMultiplierFactor;

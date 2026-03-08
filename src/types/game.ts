@@ -33,7 +33,6 @@ export type AchievementId =
 export type RebirthUpgradeId = 'decree_of_hands' | 'decree_of_harvest' | 'decree_of_crown';
 
 export type UpgradeType = 'click' | 'passive' | 'global';
-
 export type RebirthUpgradeType = 'click' | 'passive' | 'global';
 
 export type AchievementConditionType =
@@ -96,6 +95,19 @@ export interface PermanentMultipliers {
   global: number;
 }
 
+export interface ItemPassiveBonuses {
+  clickFlat: number;
+  passiveFlat: number;
+  globalMultiplierBonus: number;
+  clickCritChance: number;
+  buildingDiscount: number;
+  rebirthRewardBonus: number;
+  itemDropBonus: number;
+  offlineIncomeBonus: number;
+  rareBoxSpawnBonus: number;
+  boxCooldownReduction: number;
+}
+
 export interface GameStats {
   totalClicks: number;
   totalManualEarned: number;
@@ -104,6 +116,8 @@ export interface GameStats {
   upgradesPurchased: number;
   playTimeSeconds: number;
   currentRunEarned: number;
+  boxesOpened: number;
+  tradesCompleted: number;
 }
 
 export interface GameSettings {
