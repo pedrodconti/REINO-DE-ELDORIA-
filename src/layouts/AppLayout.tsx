@@ -5,13 +5,14 @@ import { toast } from 'sonner';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { GAME_NAME, RESOURCE_NAME } from '@/data/theme';
+import { BOX_CURRENCY_NAME, GAME_NAME, RESOURCE_NAME } from '@/data/theme';
 import { useAchievementToasts } from '@/hooks/useAchievementToasts';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useGameBootstrap } from '@/hooks/useGameBootstrap';
 import { useGameLoop } from '@/hooks/useGameLoop';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGameStore } from '@/store/useGameStore';
+import { toDiamondsFromSeals } from '@/utils/currency';
 import { formatLargeNumber, formatPerSecond } from '@/utils/format';
 
 const navLinks = [
@@ -43,6 +44,7 @@ export function AppLayout() {
   useAchievementToasts();
 
   const shouldWaitForLoad = Boolean(user && (!isLoaded || loadedUserId !== user.id));
+  const availableDiamonds = toDiamondsFromSeals(progress.rebirthCurrency);
 
   if (shouldWaitForLoad || (!isLoaded && isGameLoading)) {
     return <LoadingScreen message="Carregando seu progresso na nuvem..." />;
@@ -91,6 +93,11 @@ export function AppLayout() {
             <Badge className="justify-center border-accent/40 bg-accent/10 px-3 py-1 text-accent-foreground sm:justify-start">
               <Hourglass className="mr-1 h-3 w-3" />
               {formatPerSecond(progress.passiveIncome)}
+            </Badge>
+
+            <Badge className="justify-center border-emerald-500/45 bg-emerald-500/10 px-3 py-1 text-emerald-200 sm:justify-start">
+              <Sparkles className="mr-1 h-3 w-3" />
+              {formatLargeNumber(availableDiamonds)} {BOX_CURRENCY_NAME}
             </Badge>
 
             <Button variant="outline" onClick={handleSaveNow} disabled={isSaving}>

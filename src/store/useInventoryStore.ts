@@ -74,7 +74,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   toggleEquip: async (userId, userItemId, equip, slot) => {
     try {
       await setItemEquipped(userItemId, equip, slot);
-      await get().loadInventory(userId);
+      await get().loadInventory(userId, true);
 
       return {
         ok: true,
@@ -88,7 +88,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   setTradable: async (userId, userItemId, tradable) => {
     try {
       await setItemTradable(userItemId, tradable);
-      await get().loadInventory(userId);
+      await get().loadInventory(userId, true);
 
       return {
         ok: true,

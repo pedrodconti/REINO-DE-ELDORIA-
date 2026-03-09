@@ -56,11 +56,11 @@ export interface ActiveLootBoxRotation {
   box: LootBox;
   startsAt: string;
   endsAt: string;
-  nextSpawnAt: string | null;
+  hasOpened: boolean;
 }
 
 export interface LootBoxShopState {
-  activeRotation: ActiveLootBoxRotation | null;
+  activeRotations: ActiveLootBoxRotation[];
   nextSpawnAt: string | null;
   serverNow: string;
 }
@@ -96,10 +96,13 @@ export interface UserItemRecord {
 
 export interface BoxOpenResult {
   lootBoxKey: string;
+  rotationId: string;
   item: ItemDefinitionRecord;
   quantity: number;
-  pricePaid: number;
-  remainingResource: number;
+  pricePaidDiamonds: number;
+  pricePaidSeals: number;
+  remainingRebirthCurrency: number;
+  remainingDiamonds: number;
 }
 
 export type LeaderboardMetric =

@@ -1,21 +1,23 @@
 import { motion } from 'framer-motion';
-import { Clock4, Gem, PackageOpen } from 'lucide-react';
+import { CheckCircle2, Clock4, Gem, PackageOpen } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { ActiveLootBoxRotation, BoxRarity } from '@/types/systems';
 import { BOX_RARITY_LABELS, BOX_RARITY_STYLES } from '@/data/boxes';
-import { RESOURCE_NAME } from '@/data/theme';
-import { formatLargeNumber } from '@/utils/format';
+import { BOX_CURRENCY_NAME, REBIRTH_CURRENCY_NAME } from '@/data/theme';
+import type { ActiveLootBoxRotation, BoxRarity } from '@/types/systems';
+import { formatDuration, formatLargeNumber } from '@/utils/format';
+import { toSealsFromDiamonds } from '@/utils/currency';
 
 interface BoxCardProps {
-  activeRotation: ActiveLootBoxRotation | null;
+  rotation: ActiveLootBoxRotation;
   nextSpawnAt: string | null;
   remainingSeconds: number;
   nextSpawnSeconds: number;
   canAfford: boolean;
+  availableDiamonds: number;
   isOpening: boolean;
-  onOpen: () => void;
+  onOpen: (rotationId: string) => void;
 }
 
 function getVisualClass(visual: Record<string, unknown> | null): string {
@@ -45,17 +47,6 @@ function getVisualClass(visual: Record<string, unknown> | null): string {
   }
 }
 
-function formatRemaining(seconds: number): string {
-  if (seconds <= 0) {
-    return 'Expirando...';
-  }
-
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-
-  return `${mins}m ${secs.toString().padStart(2, '0')}s`;
-}
-
 function getRarityStyle(rarity: BoxRarity | string): string {
   if (rarity in BOX_RARITY_STYLES) {
     return BOX_RARITY_STYLES[rarity as BoxRarity];
@@ -73,37 +64,19 @@ function getRarityLabel(rarity: BoxRarity | string): string {
 }
 
 export function BoxCard({
-  activeRotation,
+  rotation,
   nextSpawnAt,
   remainingSeconds,
   nextSpawnSeconds,
   canAfford,
+  availableDiamonds,
   isOpening,
   onOpen,
 }: BoxCardProps) {
-  if (!activeRotation) {
-    return (
-      <div className="ornate-card p-5">
-        <div className="flex items-center gap-3">
-          <PackageOpen className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Loja de Caixas</h3>
-        </div>
-
-        <p className="mt-3 text-sm text-muted-foreground">
-          Nenhuma caixa ativa agora. A proxima janela aparece em breve.
-        </p>
-
-        <div className="mt-4 rounded-xl border border-border/70 bg-muted/35 p-3 text-sm text-muted-foreground">
-          <p>
-            Proxima janela: {nextSpawnAt ? new Date(nextSpawnAt).toLocaleString('pt-BR') : 'calculando...'}
-          </p>
-          <p className="mt-1">Contagem regressiva: {nextSpawnSeconds > 0 ? formatRemaining(nextSpawnSeconds) : 'a qualquer momento'}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const { box } = activeRotation;
+  const { box } = rotation;
+  const priceInSeals = toSealsFromDiamonds(box.price);
+  const isExpired = remainingSeconds <= 0;
+  const isDisabled = isOpening || isExpired || rotation.hasOpened || !canAfford;
 
   return (
     <motion.div
@@ -127,44 +100,76 @@ export function BoxCard({
           <div className="rounded-lg border border-border/70 bg-background/45 p-3">
             <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Preco</p>
             <p className="mt-1 font-semibold text-foreground">
-              {formatLargeNumber(box.price)} {RESOURCE_NAME}
+              {formatLargeNumber(box.price)} {BOX_CURRENCY_NAME}
             </p>
-          </div>
-
-          <div className="rounded-lg border border-border/70 bg-background/45 p-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Duracao</p>
-            <p className="mt-1 font-semibold text-foreground">{box.durationMinutes} min</p>
+            <p className="text-xs text-muted-foreground">({formatLargeNumber(priceInSeals)} {REBIRTH_CURRENCY_NAME})</p>
           </div>
 
           <div className="rounded-lg border border-border/70 bg-background/45 p-3">
             <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Expira em</p>
-            <p className="mt-1 font-semibold text-foreground">{formatRemaining(remainingSeconds)}</p>
+            <p className="mt-1 font-semibold text-foreground">{formatDuration(remainingSeconds)}</p>
+          </div>
+
+          <div className="rounded-lg border border-border/70 bg-background/45 p-3">
+            <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Seu saldo</p>
+            <p className="mt-1 font-semibold text-foreground">{formatLargeNumber(availableDiamonds)} diamantes</p>
           </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock4 className="h-3.5 w-3.5" />
-            Janela iniciada em {new Date(activeRotation.startsAt).toLocaleString('pt-BR')}
+            Janela iniciada em {new Date(rotation.startsAt).toLocaleString('pt-BR')}
           </div>
           <div>
-            Proxima rotacao prevista: {nextSpawnAt ? new Date(nextSpawnAt).toLocaleTimeString('pt-BR') : '--'}
+            Proxima rotacao: {nextSpawnAt ? formatDuration(nextSpawnSeconds) : '--'}
           </div>
         </div>
 
+        {rotation.hasOpened ? (
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-sm text-primary">
+            <CheckCircle2 className="h-4 w-4" />
+            Caixa ja aberta por voce nesta rotacao.
+          </div>
+        ) : null}
+
         <Button
           className="mt-4 w-full"
-          onClick={onOpen}
-          disabled={isOpening || !canAfford || remainingSeconds <= 0}
+          onClick={() => onOpen(rotation.rotationId)}
+          disabled={isDisabled}
         >
           <Gem className="mr-2 h-4 w-4" />
           {isOpening
             ? 'Abrindo caixa...'
-            : canAfford
-              ? `Abrir por ${formatLargeNumber(box.price)}`
-              : 'Recursos insuficientes'}
+            : rotation.hasOpened
+              ? 'Ja aberta nesta rotacao'
+              : canAfford
+                ? `Abrir por ${formatLargeNumber(box.price)}`
+                : 'Diamantes insuficientes'}
         </Button>
       </div>
     </motion.div>
+  );
+}
+
+export function EmptyBoxCard({ nextSpawnAt, nextSpawnSeconds }: { nextSpawnAt: string | null; nextSpawnSeconds: number }) {
+  return (
+    <div className="ornate-card p-5">
+      <div className="flex items-center gap-3">
+        <PackageOpen className="h-5 w-5 text-primary" />
+        <h3 className="text-lg font-semibold">Loja de Caixas</h3>
+      </div>
+
+      <p className="mt-3 text-sm text-muted-foreground">
+        Nenhuma caixa ativa agora. A proxima janela aparece em aproximadamente 3 horas.
+      </p>
+
+      <div className="mt-4 rounded-xl border border-border/70 bg-muted/35 p-3 text-sm text-muted-foreground">
+        <p>
+          Proxima janela: {nextSpawnAt ? new Date(nextSpawnAt).toLocaleString('pt-BR') : 'calculando...'}
+        </p>
+        <p className="mt-1">Contagem regressiva: {nextSpawnSeconds > 0 ? formatDuration(nextSpawnSeconds) : 'a qualquer momento'}</p>
+      </div>
+    </div>
   );
 }

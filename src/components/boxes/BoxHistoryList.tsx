@@ -56,7 +56,7 @@ export function BoxHistoryList({ history, loading }: BoxHistoryListProps) {
               </div>
 
               <p className="mt-2 text-xs text-muted-foreground">
-                Custo pago: {formatLargeNumber(entry.pricePaid)}
+                Custo pago: {formatLargeNumber(entry.pricePaid)} diamantes
               </p>
             </div>
           );

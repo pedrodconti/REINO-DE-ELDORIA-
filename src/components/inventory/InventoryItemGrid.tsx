@@ -55,7 +55,11 @@ export function InventoryItemGrid({
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge>{categoryLabel}</Badge>
               <Badge>Qtd: {item.quantity.toLocaleString('pt-BR')}</Badge>
-              {item.isEquipped ? <Badge className="border-primary/40 bg-primary/15 text-primary">Equipado</Badge> : null}
+              {item.isEquipped ? (
+                <Badge className="border-primary/40 bg-primary/15 text-primary">
+                  Equipado ({item.equippedSlot ? ITEM_CATEGORY_LABELS[item.equippedSlot as keyof typeof ITEM_CATEGORY_LABELS] ?? item.equippedSlot : categoryLabel})
+                </Badge>
+              ) : null}
               {item.isLockedInTrade ? <Badge className="border-destructive/40 bg-destructive/15 text-destructive">Em trade</Badge> : null}
               {item.isMarkedTradable ? <Badge className="border-accent/40 bg-accent/15 text-accent-foreground">Negociavel</Badge> : null}
             </div>
@@ -73,7 +77,7 @@ export function InventoryItemGrid({
                 disabled={isBusy || item.isLockedInTrade || (item.definition.stackable && item.quantity > 1 && !item.isEquipped)}
               >
                 <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-                {item.isEquipped ? 'Desequipar' : 'Equipar'}
+                {item.isEquipped ? 'Desequipar' : 'Equipar (1 por tipo)'}
               </Button>
 
               <Button

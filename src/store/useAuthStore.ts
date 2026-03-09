@@ -11,6 +11,7 @@ interface AuthState {
   isInitialized: boolean;
   error: string | null;
   initialize: () => Promise<void>;
+  recoverSession: () => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<ActionFeedback>;
   signUp: (email: string, password: string) => Promise<ActionFeedback>;
   signOut: () => Promise<void>;
@@ -64,11 +65,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       if (!unsubscribe) {
-        unsubscribe = authService.onAuthStateChange((_event, nextSession) => {
-          set({
-            session: nextSession,
-            user: nextSession?.user ?? null,
-          });
+        unsubscribe = authService.onAuthStateChange((event, nextSession) => {
+          if (nextSession) {
+            set({
+              session: nextSession,
+              user: nextSession.user,
+            });
+            return;
+          }
+
+          if (event === 'SIGNED_OUT') {
+            set({
+              session: null,
+              user: null,
+            });
+            return;
+          }
+
+          void get().recoverSession();
         });
       }
     } catch (error) {
@@ -77,6 +91,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isInitialized: true,
         error: normalizeAuthError(error),
       });
+    }
+  },
+
+  recoverSession: async () => {
+    try {
+      const session = await authService.getSession();
+
+      set({
+        session,
+        user: session?.user ?? null,
+      });
+
+      return Boolean(session);
+    } catch (error) {
+      set({
+        error: normalizeAuthError(error),
+      });
+
+      return false;
     }
   },
 

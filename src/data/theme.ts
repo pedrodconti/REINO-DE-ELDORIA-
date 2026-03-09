@@ -2,6 +2,8 @@ export const GAME_NAME = 'Reino de Eldoria';
 export const GAME_SUBTITLE = 'Cronicas da Aurora Arcana';
 export const RESOURCE_NAME = 'Fragmentos de Eter';
 export const REBIRTH_CURRENCY_NAME = 'Selos da Aurora';
+export const BOX_CURRENCY_NAME = 'Diamantes da Coroa';
+export const SEALS_PER_DIAMOND = 1000;
 export const REBIRTH_ACTION_NAME = 'Nova Era do Reino';
 
 export const GAME_LORE =

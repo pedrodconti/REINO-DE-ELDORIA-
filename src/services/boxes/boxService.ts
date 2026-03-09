@@ -13,7 +13,7 @@ export interface BoxHistoryEntry {
 
 function normalizeShopState(payload: unknown): LootBoxShopState {
   const defaultState: LootBoxShopState = {
-    activeRotation: null,
+    activeRotations: [],
     nextSpawnAt: null,
     serverNow: new Date().toISOString(),
   };
@@ -22,9 +22,24 @@ function normalizeShopState(payload: unknown): LootBoxShopState {
     return defaultState;
   }
 
-  const parsed = payload as LootBoxShopState;
+  const parsed = payload as Partial<LootBoxShopState>;
+  const activeRotations = Array.isArray(parsed.activeRotations)
+    ? parsed.activeRotations
+        .filter((rotation) => Boolean(rotation?.rotationId) && Boolean(rotation?.box))
+        .map((rotation) => ({
+          ...rotation,
+          hasOpened: Boolean(rotation.hasOpened),
+          box: {
+            ...rotation.box,
+            price: Number(rotation.box?.price ?? 0),
+            spawnWeight: Number(rotation.box?.spawnWeight ?? 0),
+            durationMinutes: Number(rotation.box?.durationMinutes ?? 0),
+          },
+        }))
+    : [];
+
   return {
-    activeRotation: parsed.activeRotation ?? null,
+    activeRotations,
     nextSpawnAt: parsed.nextSpawnAt ?? null,
     serverNow: parsed.serverNow ?? defaultState.serverNow,
   };
@@ -40,9 +55,9 @@ export async function getLootBoxShopState(): Promise<LootBoxShopState> {
   return normalizeShopState(data);
 }
 
-export async function openLootBox(boxKey: string): Promise<BoxOpenResult> {
+export async function openLootBox(rotationId: string): Promise<BoxOpenResult> {
   const { data, error } = await supabase.rpc('open_active_loot_box', {
-    p_box_key: boxKey,
+    p_rotation_id: rotationId,
   });
 
   if (error) {

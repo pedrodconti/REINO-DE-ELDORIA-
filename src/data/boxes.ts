@@ -2,8 +2,8 @@ import type { BoxRarity } from '@/types/systems';
 
 export const BOX_RARITY_LABELS: Record<BoxRarity, string> = {
   comum: 'Comum',
-  incomum: 'Incomum',
-  raro: 'Raro',
+  incomum: 'Rara',
+  raro: 'Super Rara',
   epico: 'Epico',
   lendario: 'Lendario',
   mitico: 'Mitico',
