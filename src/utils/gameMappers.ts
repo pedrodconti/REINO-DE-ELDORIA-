@@ -95,6 +95,20 @@ function sanitizeAchievementList(input: string[] | null | undefined) {
   return input.filter((item): item is GameProgress['achievements'][number] => allowed.has(item));
 }
 
+function resolveCrownDiamonds(row: GameSaveRow): number {
+  const fromColumn = toNumber(row.crown_diamonds, Number.NaN);
+  if (Number.isFinite(fromColumn)) {
+    return fromColumn;
+  }
+
+  const fromStats = toNumber(row.stats?.crownDiamonds, Number.NaN);
+  if (Number.isFinite(fromStats)) {
+    return fromStats;
+  }
+
+  return Math.floor(toNumber(row.rebirth_currency, 0) / 1000);
+}
+
 export function mapDatabaseToProgress(
   row: GameSaveRow | null,
   rebirthRows: RebirthUpgradeRow[] | null,
@@ -114,6 +128,7 @@ export function mapDatabaseToProgress(
     globalMultiplier: toNumber(row.global_multiplier, 1),
     rebirthCount: row.rebirth_count ?? 0,
     rebirthCurrency: toNumber(row.rebirth_currency, 0),
+    crownDiamonds: resolveCrownDiamonds(row),
     buildings: normalizeBuildings(row.buildings),
     upgrades: sanitizeUpgradeList(row.upgrades),
     achievements: sanitizeAchievementList(row.achievements),
@@ -150,6 +165,7 @@ export function serializeProgressForSave(userId: string, progress: GameProgress)
     global_multiplier: progress.globalMultiplier,
     rebirth_count: progress.rebirthCount,
     rebirth_currency: progress.rebirthCurrency,
+    crown_diamonds: progress.crownDiamonds,
     buildings: progress.buildings,
     upgrades: progress.upgrades,
     achievements: progress.achievements,

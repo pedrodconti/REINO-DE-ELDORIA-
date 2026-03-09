@@ -24,6 +24,7 @@ export interface ProfileRow {
 }
 
 export interface GameSaveStatsPayload extends GameStats {
+  crownDiamonds?: number;
   settings?: GameSettings;
   permanentMultipliers?: {
     click: number;
@@ -42,6 +43,7 @@ export interface GameSaveRow {
   global_multiplier: NumericValue;
   rebirth_count: number;
   rebirth_currency: NumericValue;
+  crown_diamonds?: NumericValue | null;
   buildings: Partial<Record<BuildingId, number>>;
   upgrades: UpgradeId[];
   achievements: AchievementId[];
@@ -69,6 +71,7 @@ export interface GameSaveUpsertPayload {
   global_multiplier: number;
   rebirth_count: number;
   rebirth_currency: number;
+  crown_diamonds?: number;
   buildings: Record<BuildingId, number>;
   upgrades: UpgradeId[];
   achievements: AchievementId[];

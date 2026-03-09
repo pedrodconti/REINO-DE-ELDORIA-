@@ -12,7 +12,7 @@ import { useGameBootstrap } from '@/hooks/useGameBootstrap';
 import { useGameLoop } from '@/hooks/useGameLoop';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGameStore } from '@/store/useGameStore';
-import { toDiamondsFromSeals } from '@/utils/currency';
+import { useProfileStore } from '@/store/useProfileStore';
 import { formatLargeNumber, formatPerSecond } from '@/utils/format';
 
 const navLinks = [
@@ -29,6 +29,7 @@ const navLinks = [
 export function AppLayout() {
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
+  const profile = useProfileStore((state) => state.profile);
   const progress = useGameStore((state) => state.progress);
   const isGameLoading = useGameStore((state) => state.isLoading);
   const isLoaded = useGameStore((state) => state.isLoaded);
@@ -44,7 +45,7 @@ export function AppLayout() {
   useAchievementToasts();
 
   const shouldWaitForLoad = Boolean(user && (!isLoaded || loadedUserId !== user.id));
-  const availableDiamonds = toDiamondsFromSeals(progress.rebirthCurrency);
+  const availableDiamonds = progress.crownDiamonds;
 
   if (shouldWaitForLoad || (!isLoaded && isGameLoading)) {
     return <LoadingScreen message="Carregando seu progresso na nuvem..." />;
@@ -81,7 +82,7 @@ export function AppLayout() {
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Reino ativo</p>
             <h1 className="golden-text text-2xl">{GAME_NAME}</h1>
-            <p className="text-xs text-muted-foreground">{user?.email}</p>
+            <p className="text-xs text-muted-foreground">{profile?.username ?? user?.email}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">

@@ -71,6 +71,7 @@ export function createInitialProgress(partial?: Partial<GameProgress>): GameProg
     globalMultiplier: 1,
     rebirthCount: 0,
     rebirthCurrency: 0,
+    crownDiamonds: 0,
     buildings: createEmptyBuildings(),
     upgrades: [],
     achievements: [],

@@ -13,7 +13,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   recoverSession: () => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<ActionFeedback>;
-  signUp: (email: string, password: string) => Promise<ActionFeedback>;
+  signUp: (email: string, password: string, username: string) => Promise<ActionFeedback>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -135,11 +135,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signUp: async (email: string, password: string) => {
+  signUp: async (email: string, password: string, username: string) => {
     set({ isLoading: true, error: null });
 
     try {
-      await authService.signUpWithEmail(email, password);
+      await authService.signUpWithEmail(email, password, username);
       set({ isLoading: false });
 
       return {

@@ -7,11 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { getMyProfile, sanitizeUsername, updateMyUsername, validateUsername } from '@/services/profileService';
+import { hasCompleteUsername, sanitizeUsername } from '@/services/profileService';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGameStore } from '@/store/useGameStore';
+import { useProfileStore } from '@/store/useProfileStore';
 
 function normalizeProfileError(error: unknown): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+
   if (error && typeof error === 'object' && 'message' in error) {
     const message = String(error.message);
     if (message.toLowerCase().includes('duplicate key')) {
@@ -33,10 +38,13 @@ export function SettingsPage() {
   const setSetting = useGameStore((state) => state.setSetting);
   const resetCurrentRun = useGameStore((state) => state.resetCurrentRun);
   const resetAllLocalProgress = useGameStore((state) => state.resetAllLocalProgress);
+  const profile = useProfileStore((state) => state.profile);
+  const profileLoadedUserId = useProfileStore((state) => state.loadedUserId);
+  const isLoadingProfile = useProfileStore((state) => state.isLoading);
+  const ensureProfileLoaded = useProfileStore((state) => state.ensureLoaded);
+  const saveUsername = useProfileStore((state) => state.saveUsername);
 
   const [username, setUsername] = useState('');
-  const [savedUsername, setSavedUsername] = useState('');
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
@@ -44,38 +52,16 @@ export function SettingsPage() {
       return;
     }
 
-    let cancelled = false;
+    if (profileLoadedUserId !== user.id) {
+      void ensureProfileLoaded(user.id, true);
+    }
+  }, [ensureProfileLoaded, profileLoadedUserId, user]);
 
-    const loadProfile = async () => {
-      setIsLoadingProfile(true);
-      try {
-        const profile = await getMyProfile(user.id);
-        if (cancelled) {
-          return;
-        }
-
-        const profileUsername = profile?.username ?? '';
-        setUsername(profileUsername);
-        setSavedUsername(profileUsername);
-      } catch (error) {
-        if (!cancelled) {
-          toast.error('Falha ao carregar perfil', {
-            description: normalizeProfileError(error),
-          });
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingProfile(false);
-        }
-      }
-    };
-
-    void loadProfile();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
+  useEffect(() => {
+    if (profile?.username) {
+      setUsername(profile.username);
+    }
+  }, [profile?.username]);
 
   const handleManualSave = async () => {
     if (!user) {
@@ -99,25 +85,22 @@ export function SettingsPage() {
       return;
     }
 
-    const validationError = validateUsername(username);
-    if (validationError) {
-      toast.error('Nome invalido', { description: validationError });
-      return;
-    }
-
     setIsSavingProfile(true);
     try {
-      const updated = await updateMyUsername(user.id, username);
-      const normalized = updated.username ?? sanitizeUsername(username);
+      const result = await saveUsername(user.id, username);
+
+      if (!result.ok) {
+        toast.error('Falha ao atualizar nome', {
+          description: normalizeProfileError(result.message),
+        });
+        return;
+      }
+
+      const normalized = sanitizeUsername(username);
       setUsername(normalized);
-      setSavedUsername(normalized);
 
       toast.success('Nome atualizado', {
         description: 'Agora ranking e trade vao mostrar seu novo nome.',
-      });
-    } catch (error) {
-      toast.error('Falha ao atualizar nome', {
-        description: normalizeProfileError(error),
       });
     } finally {
       setIsSavingProfile(false);
@@ -163,13 +146,18 @@ export function SettingsPage() {
               placeholder="Ex.: Eldoriano_01"
               disabled={isLoadingProfile || isSavingProfile}
             />
-            <p className="text-xs text-muted-foreground">Use 3 a 20 caracteres: letras, numeros e underscore.</p>
+            <p className="text-xs text-muted-foreground">
+              Use 3 a 20 caracteres: letras minusculas, numeros e underscore.
+            </p>
+            {!hasCompleteUsername(profile?.username) ? (
+              <p className="text-xs text-amber-300">Seu perfil ainda nao possui username valido.</p>
+            ) : null}
           </div>
 
           <Button
             className="w-full"
             onClick={handleSaveUsername}
-            disabled={isLoadingProfile || isSavingProfile || sanitizeUsername(username) === savedUsername}
+            disabled={isLoadingProfile || isSavingProfile || sanitizeUsername(username) === sanitizeUsername(profile?.username ?? '')}
           >
             <UserRound className="mr-2 h-4 w-4" />
             {isSavingProfile ? 'Salvando nome...' : 'Salvar nome de jogador'}

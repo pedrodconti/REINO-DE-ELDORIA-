@@ -23,8 +23,22 @@ export const authService = {
     return data;
   },
 
-  async signUpWithEmail(email: string, password: string) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+  async signUpWithEmail(email: string, password: string, username: string) {
+    const metadataUsername = username
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '');
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: metadataUsername,
+        },
+      },
+    });
 
     if (error) {
       throw error;

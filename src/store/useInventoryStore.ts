@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { getUserInventory, setItemEquipped, setItemTradable } from '@/services/inventory/inventoryService';
+import { equipBestItems, getUserInventory, setItemEquipped, setItemTradable } from '@/services/inventory/inventoryService';
 import type { ActionFeedback } from '@/types/game';
 import type { UserItemRecord } from '@/types/systems';
 import { useGameStore } from '@/store/useGameStore';
@@ -14,6 +14,7 @@ interface InventoryStore {
   loadedUserId: string | null;
   loadInventory: (userId: string, force?: boolean) => Promise<void>;
   toggleEquip: (userId: string, userItemId: string, equip: boolean, slot?: string) => Promise<ActionFeedback>;
+  equipBest: (userId: string) => Promise<ActionFeedback>;
   setTradable: (userId: string, userItemId: string, tradable: boolean) => Promise<ActionFeedback>;
   updateItems: (items: UserItemRecord[]) => void;
   clear: () => void;
@@ -79,6 +80,20 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       return {
         ok: true,
         message: equip ? 'Item equipado.' : 'Item desequipado.',
+      };
+    } catch (error) {
+      return toFeedbackError(error);
+    }
+  },
+
+  equipBest: async (userId) => {
+    try {
+      const equippedCount = await equipBestItems();
+      await get().loadInventory(userId, true);
+
+      return {
+        ok: true,
+        message: `${equippedCount.toLocaleString('pt-BR')} item(ns) equipados automaticamente.`,
       };
     } catch (error) {
       return toFeedbackError(error);

@@ -88,3 +88,13 @@ export async function setItemTradable(userItemId: string, tradable: boolean): Pr
     throw error;
   }
 }
+
+export async function equipBestItems(): Promise<number> {
+  const { data, error } = await supabase.rpc('equip_best_items');
+
+  if (error) {
+    throw error;
+  }
+
+  return Number(data ?? 0);
+}

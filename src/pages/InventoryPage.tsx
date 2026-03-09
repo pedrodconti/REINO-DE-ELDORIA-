@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Boxes, Filter, RefreshCcw } from 'lucide-react';
+import { Boxes, Filter, RefreshCcw, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { InventoryItemGrid } from '@/components/inventory/InventoryItemGrid';
 import { StatCard } from '@/components/StatCard';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ITEM_CATEGORY_LABELS, ITEM_RARITY_ORDER } from '@/data/items';
+import { ITEM_CATEGORY_LABELS, ITEM_RARITY_LABELS, ITEM_RARITY_ORDER, ITEM_RARITY_STYLES } from '@/data/items';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import type { ItemCategory, ItemRarity, UserItemRecord } from '@/types/systems';
 import { formatLargeNumber } from '@/utils/format';
+import { formatPassiveEffect } from '@/utils/itemPassives';
 
 const rarityRank: Record<ItemRarity, number> = {
   comum: 0,
@@ -36,9 +38,11 @@ export function InventoryPage() {
   const isLoading = useInventoryStore((state) => state.isLoading);
   const loadInventory = useInventoryStore((state) => state.loadInventory);
   const toggleEquip = useInventoryStore((state) => state.toggleEquip);
+  const equipBest = useInventoryStore((state) => state.equipBest);
   const setTradable = useInventoryStore((state) => state.setTradable);
 
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
+  const [isEquippingBest, setIsEquippingBest] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<ItemCategory | 'all'>('all');
   const [rarityFilter, setRarityFilter] = useState<ItemRarity | 'all'>('all');
   const [sortMode, setSortMode] = useState<SortMode>('rarity_desc');
@@ -51,8 +55,16 @@ export function InventoryPage() {
     void loadInventory(user.id, true);
   }, [loadInventory, user]);
 
+  const equippedItems = useMemo(
+    () =>
+      items
+        .filter((item) => item.isEquipped)
+        .sort((a, b) => rarityRank[b.definition.rarity] - rarityRank[a.definition.rarity]),
+    [items],
+  );
+
   const filteredItems = useMemo(() => {
-    let next = [...items];
+    let next = items.filter((item) => !item.isEquipped);
 
     if (categoryFilter !== 'all') {
       next = next.filter((item) => item.definition.category === categoryFilter);
@@ -84,7 +96,7 @@ export function InventoryPage() {
     [items],
   );
 
-  const equippedCount = useMemo(() => items.filter((item) => item.isEquipped).length, [items]);
+  const equippedCount = equippedItems.length;
   const tradableCount = useMemo(() => items.filter((item) => item.isMarkedTradable).length, [items]);
 
   const handleEquipToggle = async (item: UserItemRecord) => {
@@ -102,6 +114,23 @@ export function InventoryPage() {
     }
 
     setBusyItemId(null);
+  };
+
+  const handleEquipBest = async () => {
+    if (!user) {
+      return;
+    }
+
+    setIsEquippingBest(true);
+    const result = await equipBest(user.id);
+
+    if (result.ok) {
+      toast.success('Equipar melhores concluido', { description: result.message });
+    } else {
+      toast.error('Nao foi possivel equipar melhores', { description: result.message });
+    }
+
+    setIsEquippingBest(false);
   };
 
   const handleTradableToggle = async (item: UserItemRecord) => {
@@ -137,11 +166,67 @@ export function InventoryPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-lg">Itens Equipados</CardTitle>
+          <CardDescription>Somente 1 item por categoria fica ativo ao mesmo tempo.</CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleEquipBest} disabled={isEquippingBest || isLoading}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {isEquippingBest ? 'Equipando...' : 'Equipar melhores'}
+            </Button>
+            <Button variant="outline" onClick={() => user && void loadInventory(user.id, true)}>
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Atualizar inventario
+            </Button>
+          </div>
+
+          {!equippedItems.length ? (
+            <p className="rounded-xl border border-border/70 bg-muted/35 p-3 text-sm text-muted-foreground">
+              Nenhum item equipado ainda.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {equippedItems.map((item) => (
+                <div key={item.id} className="rounded-xl border border-border/70 bg-muted/35 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-foreground">{item.definition.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {ITEM_CATEGORY_LABELS[item.definition.category]}
+                      </p>
+                    </div>
+                    <Badge className={ITEM_RARITY_STYLES[item.definition.rarity]}>
+                      {ITEM_RARITY_LABELS[item.definition.rarity]}
+                    </Badge>
+                  </div>
+
+                  <p className="mt-2 text-xs text-muted-foreground">{formatPassiveEffect(item.definition)}</p>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-3 w-full"
+                    disabled={busyItemId === item.id}
+                    onClick={() => handleEquipToggle(item)}
+                  >
+                    Desequipar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Filter className="h-5 w-5 text-primary" />
             Filtros do inventario
           </CardTitle>
-          <CardDescription>Refine a listagem por raridade, categoria e ordenacao.</CardDescription>
+          <CardDescription>Refine os itens nao equipados por raridade, categoria e ordenacao.</CardDescription>
         </CardHeader>
 
         <CardContent className="grid gap-3 md:grid-cols-4">

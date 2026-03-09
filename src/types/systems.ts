@@ -96,13 +96,20 @@ export interface UserItemRecord {
 
 export interface BoxOpenResult {
   lootBoxKey: string;
-  rotationId: string;
+  rotationId: string | null;
   item: ItemDefinitionRecord;
   quantity: number;
   pricePaidDiamonds: number;
   pricePaidSeals: number;
   remainingRebirthCurrency: number;
   remainingDiamonds: number;
+}
+
+export interface SealConversionResult {
+  convertedDiamonds: number;
+  spentSeals: number;
+  rebirthCurrency: number;
+  crownDiamonds: number;
 }
 
 export type LeaderboardMetric =

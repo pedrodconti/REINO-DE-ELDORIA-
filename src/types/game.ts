@@ -134,6 +134,7 @@ export interface GameProgress {
   globalMultiplier: number;
   rebirthCount: number;
   rebirthCurrency: number;
+  crownDiamonds: number;
   buildings: BuildingsOwned;
   upgrades: UpgradeId[];
   achievements: AchievementId[];

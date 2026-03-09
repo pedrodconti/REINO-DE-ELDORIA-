@@ -1,10 +1,25 @@
 import { supabase } from '@/lib/supabase';
 import type { ProfileRow } from '@/types/supabase';
 
-const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
+const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
+
+function isRpcMissingError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const code = 'code' in error ? String(error.code ?? '') : '';
+  const message = 'message' in error ? String(error.message ?? '').toLowerCase() : '';
+
+  return code === 'PGRST202' || message.includes('function') && message.includes('not found');
+}
 
 export function sanitizeUsername(input: string): string {
-  return input.trim().replace(/\s+/g, '_');
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
 }
 
 export function validateUsername(input: string): string | null {
@@ -15,10 +30,18 @@ export function validateUsername(input: string): string | null {
   }
 
   if (!USERNAME_REGEX.test(normalized)) {
-    return 'Use 3 a 20 caracteres (letras, numeros e underscore).';
+    return 'Use 3 a 20 caracteres (letras minusculas, numeros e underscore).';
   }
 
   return null;
+}
+
+export function hasCompleteUsername(username: string | null | undefined): boolean {
+  if (!username) {
+    return false;
+  }
+
+  return USERNAME_REGEX.test(username.trim().toLowerCase());
 }
 
 export async function getMyProfile(userId: string): Promise<ProfileRow | null> {
@@ -35,8 +58,20 @@ export async function getMyProfile(userId: string): Promise<ProfileRow | null> {
   return (data as ProfileRow | null) ?? null;
 }
 
-export async function updateMyUsername(userId: string, username: string): Promise<ProfileRow> {
+export async function setMyUsername(userId: string, username: string): Promise<ProfileRow> {
   const normalized = sanitizeUsername(username);
+
+  const { data: rpcData, error: rpcError } = await supabase.rpc('set_profile_username', {
+    p_username: normalized,
+  });
+
+  if (!rpcError && rpcData) {
+    return rpcData as ProfileRow;
+  }
+
+  if (rpcError && !isRpcMissingError(rpcError)) {
+    throw rpcError;
+  }
 
   const { data, error } = await supabase
     .from('profiles')

@@ -126,6 +126,7 @@ function createRunReset(progress: GameProgress): GameProgress {
   return createInitialProgress({
     rebirthCount: progress.rebirthCount,
     rebirthCurrency: progress.rebirthCurrency,
+    crownDiamonds: progress.crownDiamonds,
     rebirthUpgrades: { ...progress.rebirthUpgrades },
     achievements: [...progress.achievements],
     totalResourceEarned: progress.totalResourceEarned,

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GAME_NAME } from '@/data/theme';
+import { sanitizeUsername, validateUsername } from '@/services/profileService';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export function AuthPage() {
@@ -22,14 +23,15 @@ export function AuthPage() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
+  const [registerUsername, setRegisterUsername] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState('');
 
   const isLoginDisabled = useMemo(() => !loginEmail || !loginPassword || isLoading, [loginEmail, loginPassword, isLoading]);
 
   const isRegisterDisabled = useMemo(
-    () => !registerEmail || !registerPassword || !registerPasswordConfirm || isLoading,
-    [isLoading, registerEmail, registerPassword, registerPasswordConfirm],
+    () => !registerEmail || !registerUsername || !registerPassword || !registerPasswordConfirm || isLoading,
+    [isLoading, registerEmail, registerPassword, registerPasswordConfirm, registerUsername],
   );
 
   const handleLogin = async (event: React.FormEvent) => {
@@ -63,7 +65,15 @@ export function AuthPage() {
       return;
     }
 
-    const result = await signUp(registerEmail, registerPassword);
+    const usernameError = validateUsername(registerUsername);
+    if (usernameError) {
+      toast.error('Username invalido', {
+        description: usernameError,
+      });
+      return;
+    }
+
+    const result = await signUp(registerEmail, registerPassword, registerUsername);
 
     if (!result.ok) {
       toast.error('Falha no cadastro', {
@@ -138,6 +148,22 @@ export function AuthPage() {
                     onChange={(event) => setRegisterEmail(event.target.value)}
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="register-username">Username</Label>
+                  <Input
+                    id="register-username"
+                    type="text"
+                    placeholder="ex.: eldoria_hero"
+                    value={registerUsername}
+                    onChange={(event) => setRegisterUsername(event.target.value)}
+                    required
+                    maxLength={20}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Nome publico: <strong>{sanitizeUsername(registerUsername) || '...'}</strong>
+                  </p>
                 </div>
 
                 <div className="space-y-2">
