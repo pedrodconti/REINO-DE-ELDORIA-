@@ -1,9 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 import { BoxSpinTrack } from '@/components/boxes/BoxSpinTrack';
 import { PixelArtSprite } from '@/components/PixelArtSprite';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { getBoxPixelArt, getToolPixelArt } from '@/data/pixelArt';
 import type { BoxOpenResult, ItemRarity } from '@/types/systems';
 import { ITEM_RARITY_LABELS, ITEM_RARITY_STYLES } from '@/data/items';
@@ -38,6 +40,19 @@ function getResultSprite(result: BoxOpenResult): string {
 }
 
 export function BoxDropReveal({ result }: BoxDropRevealProps) {
+  const [skipSignal, setSkipSignal] = useState(0);
+  const [completedSpinKey, setCompletedSpinKey] = useState<string | null>(null);
+
+  const resultKey = useMemo(() => {
+    if (!result) {
+      return 'empty';
+    }
+
+    return `${result.item.id}:${result.quantity}:${result.rotationId ?? 'norot'}:${result.remainingDiamonds}`;
+  }, [result]);
+
+  const isSpinning = Boolean(result && completedSpinKey !== resultKey);
+
   return (
     <AnimatePresence mode="wait">
       {result ? (
@@ -48,9 +63,26 @@ export function BoxDropReveal({ result }: BoxDropRevealProps) {
           exit={{ opacity: 0, y: -8 }}
           className="ornate-card p-5"
         >
-          <BoxSpinTrack result={result} />
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Abertura da caixa</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSkipSignal((value) => value + 1)}
+              disabled={!isSpinning}
+            >
+              {isSpinning ? 'Pular animacao' : 'Animacao concluida'}
+            </Button>
+          </div>
 
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Ultima recompensa</p>
+          <BoxSpinTrack
+            result={result}
+            spinCycleKey={resultKey}
+            skipSignal={skipSignal}
+            onSpinComplete={() => setCompletedSpinKey(resultKey)}
+          />
+
+          <p className="mt-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">Ultima recompensa</p>
           <div className="mt-2 flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="mt-1 rounded-lg border border-border/70 bg-background/80 p-2">
@@ -58,8 +90,8 @@ export function BoxDropReveal({ result }: BoxDropRevealProps) {
               </div>
 
               <div>
-              <h3 className="text-lg font-semibold text-foreground">{result.item.name}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{result.item.description}</p>
+                <h3 className="text-lg font-semibold text-foreground">{result.item.name}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{result.item.description}</p>
               </div>
             </div>
 

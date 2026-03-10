@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { useMemo } from 'react';
+import { motion, useAnimationControls } from 'framer-motion';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { PixelArtSprite } from '@/components/PixelArtSprite';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,9 @@ import type { BoxOpenResult, ItemRarity } from '@/types/systems';
 
 interface BoxSpinTrackProps {
   result: BoxOpenResult;
+  spinCycleKey: string;
+  skipSignal: number;
+  onSpinComplete?: () => void;
 }
 
 interface SpinSlot {
@@ -26,6 +29,7 @@ const TRACK_VIEWPORT_WIDTH = 680;
 const TOTAL_SLOTS = 18;
 const FINAL_SLOT_INDEX = 13;
 const RARITY_CYCLE: ItemRarity[] = ['comum', 'incomum', 'raro', 'epico', 'lendario', 'mitico'];
+const SPIN_DURATION_SECONDS = 5.8;
 
 function getResultSprite(result: BoxOpenResult): string {
   if (result.grantedToolKey) {
@@ -35,7 +39,11 @@ function getResultSprite(result: BoxOpenResult): string {
   return getBoxPixelArt(result.item.rarity);
 }
 
-export function BoxSpinTrack({ result }: BoxSpinTrackProps) {
+export function BoxSpinTrack({ result, spinCycleKey, skipSignal, onSpinComplete }: BoxSpinTrackProps) {
+  const controls = useAnimationControls();
+  const activeSpinIdRef = useRef(0);
+  const completedSpinIdRef = useRef(0);
+
   const slots = useMemo<SpinSlot[]>(() => {
     const hash = result.item.id
       .split('')
@@ -70,17 +78,68 @@ export function BoxSpinTrack({ result }: BoxSpinTrackProps) {
 
   const targetX = TRACK_VIEWPORT_WIDTH / 2 - (FINAL_SLOT_INDEX * SLOT_STEP + SLOT_WIDTH / 2);
 
+  useEffect(() => {
+    const spinId = activeSpinIdRef.current + 1;
+    activeSpinIdRef.current = spinId;
+    completedSpinIdRef.current = 0;
+
+    const finishSpin = () => {
+      if (completedSpinIdRef.current === spinId) {
+        return;
+      }
+
+      completedSpinIdRef.current = spinId;
+      onSpinComplete?.();
+    };
+
+    const runSpin = async () => {
+      await controls.set({ x: 0 });
+      await controls.start({
+        x: targetX,
+        transition: { duration: SPIN_DURATION_SECONDS, ease: [0.07, 0.92, 0.15, 1] },
+      });
+
+      if (activeSpinIdRef.current === spinId) {
+        finishSpin();
+      }
+    };
+
+    void runSpin();
+  }, [controls, onSpinComplete, spinCycleKey, targetX]);
+
+  useEffect(() => {
+    if (skipSignal <= 0) {
+      return;
+    }
+
+    const spinId = activeSpinIdRef.current;
+
+    const finishSpin = () => {
+      if (completedSpinIdRef.current === spinId) {
+        return;
+      }
+
+      completedSpinIdRef.current = spinId;
+      onSpinComplete?.();
+    };
+
+    void controls
+      .start({
+        x: targetX,
+        transition: { duration: 0.16, ease: 'easeOut' },
+      })
+      .then(() => {
+        if (activeSpinIdRef.current === spinId) {
+          finishSpin();
+        }
+      });
+  }, [controls, onSpinComplete, skipSignal, targetX]);
+
   return (
     <div className="relative mx-auto w-full max-w-[680px] overflow-hidden rounded-xl border border-primary/35 bg-black/25 p-2">
       <div className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-0.5 -translate-x-1/2 bg-primary/70" />
 
-      <motion.div
-        key={`${result.item.id}-${result.quantity}-${result.rotationId ?? 'norot'}`}
-        className="flex gap-2"
-        initial={{ x: 0 }}
-        animate={{ x: targetX }}
-        transition={{ duration: 2.2, ease: [0.18, 0.95, 0.25, 1] }}
-      >
+      <motion.div className="flex gap-2" initial={{ x: 0 }} animate={controls}>
         {slots.map((slot) => (
           <div
             key={slot.id}
