@@ -13,6 +13,12 @@ import type {
   LootBoxKey,
   TradeStatus,
 } from '@/types/systems';
+import type {
+  GatheringAreaKey,
+  MaterialRarity,
+  MerchantBuffType,
+  ToolType,
+} from '@/types/gathering';
 
 export type NumericValue = number | string;
 
@@ -161,5 +167,111 @@ export interface TradeItemRow {
   item_name: string;
   item_rarity: ItemRarity;
   item_category: ItemCategory;
+  created_at: string;
+}
+
+export interface MaterialDefinitionRow {
+  id: string;
+  material_key: string;
+  name: string;
+  description: string;
+  rarity: MaterialRarity;
+  area_key: GatheringAreaKey;
+  is_building_material: boolean;
+  base_sell_value: NumericValue;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserMaterialRow {
+  user_id: string;
+  material_definition_id: string;
+  quantity: NumericValue;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ToolDefinitionRow {
+  id: string;
+  tool_key: string;
+  name: string;
+  tool_type: ToolType;
+  tier: number;
+  rarity: ItemRarity;
+  buy_cost_gold: NumericValue;
+  is_box_only: boolean;
+  base_speed: NumericValue;
+  base_yield: NumericValue;
+  base_luck: NumericValue;
+  base_duplicate_chance: NumericValue;
+  base_rare_drop_chance: NumericValue;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserToolRow {
+  id: string;
+  user_id: string;
+  tool_definition_id: string;
+  is_owned: boolean;
+  is_equipped: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ToolUpgradeRow {
+  user_id: string;
+  tool_definition_id: string;
+  speed_level: number;
+  yield_level: number;
+  luck_level: number;
+  duplicate_level: number;
+  rare_drop_level: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BuildingDefinitionRow {
+  id: string;
+  building_key: string;
+  name: string;
+  description: string;
+  base_gold_cost: NumericValue;
+  base_wood_cost: NumericValue;
+  base_stone_cost: NumericValue;
+  gold_growth: NumericValue;
+  wood_growth: NumericValue;
+  stone_growth: NumericValue;
+  gold_per_second: NumericValue;
+  unlock_rebirth_required: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserBuildingRow {
+  user_id: string;
+  building_definition_id: string;
+  owned_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MerchantTransactionRow {
+  id: string;
+  user_id: string;
+  material_definition_id: string;
+  quantity: number;
+  gold_earned: NumericValue;
+  bonus_type: MerchantBuffType | null;
+  bonus_value: NumericValue;
+  created_at: string;
+}
+
+export interface UserCollectionBuffRow {
+  id: string;
+  user_id: string;
+  buff_type: MerchantBuffType;
+  buff_value: NumericValue;
+  expires_at: string;
   created_at: string;
 }

@@ -1,4 +1,4 @@
-import { Box, Gauge, Hourglass, RotateCcw, Settings, Shield, Sparkles, Swords, Trophy, Vault } from 'lucide-react';
+import { Box, Gauge, Hourglass, Pickaxe, RotateCcw, Settings, Shield, Sparkles, Swords, Trophy, Vault } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -9,6 +9,7 @@ import { BOX_CURRENCY_NAME, GAME_NAME, RESOURCE_NAME } from '@/data/theme';
 import { useAchievementToasts } from '@/hooks/useAchievementToasts';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useGameBootstrap } from '@/hooks/useGameBootstrap';
+import { useGatheringPassiveLoop } from '@/hooks/useGatheringPassiveLoop';
 import { useGameLoop } from '@/hooks/useGameLoop';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGameStore } from '@/store/useGameStore';
@@ -17,6 +18,7 @@ import { formatLargeNumber, formatPerSecond } from '@/utils/format';
 
 const navLinks = [
   { to: '/app', label: 'Painel', icon: Gauge },
+  { to: '/app/gathering', label: 'Coleta', icon: Pickaxe },
   { to: '/app/boxes', label: 'Caixas', icon: Box },
   { to: '/app/inventory', label: 'Inventario', icon: Vault },
   { to: '/app/ranking', label: 'Ranking', icon: Trophy },
@@ -41,6 +43,7 @@ export function AppLayout() {
 
   useGameBootstrap();
   useGameLoop();
+  useGatheringPassiveLoop();
   useAutosave();
   useAchievementToasts();
 

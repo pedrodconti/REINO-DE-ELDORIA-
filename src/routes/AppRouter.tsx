@@ -5,6 +5,7 @@ import { AuthPage } from '@/pages/AuthPage';
 import { BoxesPage } from '@/pages/BoxesPage';
 import { CompleteProfilePage } from '@/pages/CompleteProfilePage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { GatheringPage } from '@/pages/GatheringPage';
 import { InventoryPage } from '@/pages/InventoryPage';
 import { LandingPage } from '@/pages/LandingPage';
 import { RankingPage } from '@/pages/RankingPage';
@@ -32,6 +33,7 @@ export function AppRouter() {
           <Route element={<UsernameRequiredRoute />}>
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
+              <Route path="gathering" element={<GatheringPage />} />
               <Route path="boxes" element={<BoxesPage />} />
               <Route path="inventory" element={<InventoryPage />} />
               <Route path="ranking" element={<RankingPage />} />

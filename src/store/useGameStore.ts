@@ -51,6 +51,8 @@ interface GameStore {
   buyBuilding: (buildingId: BuildingId) => ActionFeedback;
   buyUpgrade: (upgradeId: UpgradeId) => ActionFeedback;
   buyRebirthUpgrade: (upgradeId: RebirthUpgradeId) => ActionFeedback;
+  grantResource: (amount: number, source?: 'manual' | 'passive' | 'system') => ActionFeedback;
+  spendResource: (amount: number) => ActionFeedback;
   performRebirth: () => ActionFeedback;
   previewRebirthReward: () => number;
   setSetting: <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => void;
@@ -518,6 +520,74 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return {
       ok: true,
       message: `${upgrade.name} melhorado para nivel ${currentLevel + 1}.`,
+    };
+  },
+
+  grantResource: (amount, source = 'system') => {
+    const gain = roundToGamePrecision(amount);
+    if (gain <= 0) {
+      return {
+        ok: false,
+        message: 'Quantidade invalida para adicionar recursos.',
+      };
+    }
+
+    set((state) => {
+      let progress: GameProgress = {
+        ...state.progress,
+        resourceAmount: state.progress.resourceAmount + gain,
+        totalResourceEarned: state.progress.totalResourceEarned + gain,
+        stats: {
+          ...state.progress.stats,
+          totalManualEarned:
+            source === 'manual' ? state.progress.stats.totalManualEarned + gain : state.progress.stats.totalManualEarned,
+          totalPassiveEarned:
+            source === 'passive' ? state.progress.stats.totalPassiveEarned + gain : state.progress.stats.totalPassiveEarned,
+          currentRunEarned: state.progress.stats.currentRunEarned + gain,
+        },
+      };
+
+      const unlockedResult = unlockAchievements(progress);
+      progress = unlockedResult.progress;
+
+      return {
+        progress,
+        pendingAchievementIds: [...state.pendingAchievementIds, ...unlockedResult.newlyUnlocked],
+      };
+    });
+
+    return {
+      ok: true,
+      message: 'Recursos adicionados com sucesso.',
+    };
+  },
+
+  spendResource: (amount) => {
+    const cost = roundToGamePrecision(amount);
+    if (cost <= 0) {
+      return {
+        ok: false,
+        message: 'Quantidade invalida para gasto.',
+      };
+    }
+
+    if (get().progress.resourceAmount < cost) {
+      return {
+        ok: false,
+        message: 'Ouro insuficiente.',
+      };
+    }
+
+    set((state) => ({
+      progress: {
+        ...state.progress,
+        resourceAmount: state.progress.resourceAmount - cost,
+      },
+    }));
+
+    return {
+      ok: true,
+      message: 'Gasto aplicado.',
     };
   },
 

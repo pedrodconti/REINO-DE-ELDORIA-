@@ -22,6 +22,7 @@ Jogo web idle/clicker medieval-fantasia em PT-BR com login, save em nuvem, caixa
 - Abertura de caixa com custo em diamantes, compra unica por rotacao e validacao backend.
 - Rotacao de caixas com 1-2 caixas ativas por janela e troca a cada 3 horas.
 - Inventario com secao `Itens Equipados` + botao `Equipar melhores`.
+- Novo modulo de coleta (Floresta e Ravina), ferramentas, construcoes por rebirth e comerciante de materiais raros.
 
 ## Estrutura
 ```txt
@@ -40,6 +41,7 @@ src/
   routes/
   services/
     boxes/
+    gathering/
     inventory/
     ranking/
     trade/
@@ -50,6 +52,8 @@ supabase/
   schema.sql
   patch_2026_03_08_gameplay_update.sql
   patch_2026_03_09_diagnostic_fixes.sql
+  patch_2026_03_09_username_cooldown.sql
+  patch_2026_03_10_gathering_mvp.sql
 ```
 
 ## 1) Rodar localmente
@@ -86,6 +90,7 @@ Abra **Supabase -> SQL Editor** e rode nesta ordem:
 1. `supabase/schema.sql` (base completa)
 2. `supabase/patch_2026_03_09_diagnostic_fixes.sql` (correcoes obrigatorias desta versao)
 3. `supabase/patch_2026_03_09_username_cooldown.sql` (cooldown de 30 dias para troca de username)
+4. `supabase/patch_2026_03_10_gathering_mvp.sql` (modulo de coleta + ferramentas + construcoes + comerciante)
 
 Observacoes:
 - Se voce ja tinha aplicado o patch `2026_03_08`, ainda deve aplicar o `2026_03_09`.
@@ -149,7 +154,16 @@ No banco, o patch:
 - Busque jogador por username.
 - Envie proposta e responda com outra conta.
 
-## 7) Deploy gratis (Cloudflare Pages)
+## 7) Testar o modulo de coleta (MVP)
+1. Abra a rota `Coleta` no menu principal.
+2. Confirme carregamento de materiais e ferramentas iniciais.
+3. Clique em `Coletar` na Floresta e na Ravina.
+4. Compre/equipe ferramentas melhores e teste upgrades.
+5. Compre construcoes e confira ganho de ouro por segundo.
+6. Verifique bloqueio por rebirth nas construcoes avancadas.
+7. Venda materiais raros no comerciante e valide buffs temporarios.
+
+## 8) Deploy gratis (Cloudflare Pages)
 ### Git
 ```bash
 git add .
@@ -171,7 +185,7 @@ Environment variables (Production e Preview):
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-## 8) Scripts uteis
+## 9) Scripts uteis
 ```bash
 npm run dev
 npm run lint
@@ -179,7 +193,7 @@ npm run build
 npm run preview
 ```
 
-## 9) Seguranca e integridade
+## 10) Seguranca e integridade
 - Sem chave hardcoded no frontend.
 - RLS ativa nas tabelas sensiveis.
 - Operacoes criticas no backend/RPC:
@@ -192,8 +206,9 @@ npm run preview
   - `create_trade_offer`
   - `respond_trade`
 
-## 10) Proximos upgrades sugeridos
+## 11) Proximos upgrades sugeridos
 1. Snapshot semanal de ranking.
 2. Confirmacao visual custom para troca de item equipado por slot.
 3. Mais animacao na abertura de caixa com fallback para `reduceMotion`.
 4. Code-splitting por rota para reduzir bundle inicial.
+5. Migrar a coleta para RPC transacional no backend (anti-exploit completo).
