@@ -57,6 +57,7 @@ supabase/
   patch_2026_03_09_username_cooldown.sql
   patch_2026_03_10_gathering_mvp.sql
   patch_2026_03_10_cosmic_tool_drops.sql
+  patch_2026_03_10_celestial_drop_rates.sql
 ```
 
 ## 1) Rodar localmente
@@ -95,6 +96,7 @@ Abra **Supabase -> SQL Editor** e rode nesta ordem:
 3. `supabase/patch_2026_03_09_username_cooldown.sql` (cooldown de 30 dias para troca de username)
 4. `supabase/patch_2026_03_10_gathering_mvp.sql` (modulo de coleta + ferramentas + construcoes + comerciante)
 5. `supabase/patch_2026_03_10_cosmic_tool_drops.sql` (drops de ferramentas box-only na caixa celestial + ferramentas cosmicas)
+6. `supabase/patch_2026_03_10_celestial_drop_rates.sql` (balanceamento: draconicas 3% cada, cosmicas 0.5% cada)
 
 Observacoes:
 - Se voce ja tinha aplicado o patch `2026_03_08`, ainda deve aplicar o `2026_03_09`.

@@ -346,10 +346,19 @@ export async function equipToolByType(params: {
     return;
   }
 
-  const { error: updateError } = await supabase.from('user_tools').upsert(updates, { onConflict: 'id' });
-  if (updateError) {
-    throw updateError;
-  }
+  await Promise.all(
+    updates.map(async (updateRow) => {
+      const { error: updateError } = await supabase
+        .from('user_tools')
+        .update({ is_equipped: updateRow.is_equipped })
+        .eq('id', updateRow.id)
+        .eq('user_id', params.userId);
+
+      if (updateError) {
+        throw updateError;
+      }
+    }),
+  );
 }
 
 export async function upsertToolUpgrade(params: {
@@ -508,4 +517,3 @@ export function applyDropsToMaterialState(
 
   return next;
 }
-
