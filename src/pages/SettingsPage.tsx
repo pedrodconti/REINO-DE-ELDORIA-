@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { hasCompleteUsername, sanitizeUsername } from '@/services/profileService';
+import { getUsernameCooldownInfo, hasCompleteUsername, sanitizeUsername } from '@/services/profileService';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGameStore } from '@/store/useGameStore';
 import { useProfileStore } from '@/store/useProfileStore';
@@ -46,6 +46,8 @@ export function SettingsPage() {
 
   const [username, setUsername] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const cooldown = getUsernameCooldownInfo(profile?.username_changed_at);
 
   useEffect(() => {
     if (!user) {
@@ -149,6 +151,13 @@ export function SettingsPage() {
             <p className="text-xs text-muted-foreground">
               Use 3 a 20 caracteres: letras minusculas, numeros e underscore.
             </p>
+            {cooldown.canChangeNow ? (
+              <p className="text-xs text-emerald-300">Voce pode trocar username agora.</p>
+            ) : (
+              <p className="text-xs text-amber-300">
+                Proxima troca disponivel em: {cooldown.nextChangeAt ? new Date(cooldown.nextChangeAt).toLocaleString('pt-BR') : '--'}
+              </p>
+            )}
             {!hasCompleteUsername(profile?.username) ? (
               <p className="text-xs text-amber-300">Seu perfil ainda nao possui username valido.</p>
             ) : null}
@@ -157,7 +166,12 @@ export function SettingsPage() {
           <Button
             className="w-full"
             onClick={handleSaveUsername}
-            disabled={isLoadingProfile || isSavingProfile || sanitizeUsername(username) === sanitizeUsername(profile?.username ?? '')}
+            disabled={
+              isLoadingProfile
+              || isSavingProfile
+              || sanitizeUsername(username) === sanitizeUsername(profile?.username ?? '')
+              || !cooldown.canChangeNow
+            }
           >
             <UserRound className="mr-2 h-4 w-4" />
             {isSavingProfile ? 'Salvando nome...' : 'Salvar nome de jogador'}

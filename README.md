@@ -17,6 +17,7 @@ Jogo web idle/clicker medieval-fantasia em PT-BR com login, save em nuvem, caixa
 ## O que foi corrigido nesta versao
 - Correcao da loja de caixas com fallback para schema legado.
 - Username obrigatorio e unico (cadastro novo + bloqueio de usuarios antigos sem username).
+- Troca de username com cooldown de 30 dias (enforced no backend).
 - Conversao segura no backend: `1000 Selos da Aurora = 1 Diamante da Coroa`.
 - Abertura de caixa com custo em diamantes, compra unica por rotacao e validacao backend.
 - Rotacao de caixas com 1-2 caixas ativas por janela e troca a cada 3 horas.
@@ -84,6 +85,7 @@ Abra **Supabase -> SQL Editor** e rode nesta ordem:
 
 1. `supabase/schema.sql` (base completa)
 2. `supabase/patch_2026_03_09_diagnostic_fixes.sql` (correcoes obrigatorias desta versao)
+3. `supabase/patch_2026_03_09_username_cooldown.sql` (cooldown de 30 dias para troca de username)
 
 Observacoes:
 - Se voce ja tinha aplicado o patch `2026_03_08`, ainda deve aplicar o `2026_03_09`.
@@ -109,6 +111,7 @@ No banco, o patch:
 - garante formato `^[a-z0-9_]{3,20}$`;
 - aplica unicidade;
 - define `username` como obrigatorio.
+- aplica cooldown de 30 dias entre trocas de username.
 
 ## 5) Teste rapido dos 3 bugs corrigidos
 ### Bug 1: Loja de caixas

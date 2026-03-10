@@ -14,6 +14,12 @@ function isRpcMissingError(error: unknown): boolean {
   return code === 'PGRST202' || message.includes('function') && message.includes('not found');
 }
 
+export interface UsernameCooldownInfo {
+  canChangeNow: boolean;
+  nextChangeAt: string | null;
+  remainingMs: number;
+}
+
 export function sanitizeUsername(input: string): string {
   return input
     .trim()
@@ -44,6 +50,34 @@ export function hasCompleteUsername(username: string | null | undefined): boolea
   return USERNAME_REGEX.test(username.trim().toLowerCase());
 }
 
+export function getUsernameCooldownInfo(changedAt: string | null | undefined): UsernameCooldownInfo {
+  if (!changedAt) {
+    return {
+      canChangeNow: true,
+      nextChangeAt: null,
+      remainingMs: 0,
+    };
+  }
+
+  const changedAtMs = new Date(changedAt).getTime();
+  if (Number.isNaN(changedAtMs)) {
+    return {
+      canChangeNow: true,
+      nextChangeAt: null,
+      remainingMs: 0,
+    };
+  }
+
+  const nextChangeMs = changedAtMs + 30 * 24 * 60 * 60 * 1000;
+  const remainingMs = Math.max(0, nextChangeMs - Date.now());
+
+  return {
+    canChangeNow: remainingMs <= 0,
+    nextChangeAt: new Date(nextChangeMs).toISOString(),
+    remainingMs,
+  };
+}
+
 export async function getMyProfile(userId: string): Promise<ProfileRow | null> {
   const { data, error } = await supabase
     .from('profiles')
@@ -58,7 +92,7 @@ export async function getMyProfile(userId: string): Promise<ProfileRow | null> {
   return (data as ProfileRow | null) ?? null;
 }
 
-export async function setMyUsername(userId: string, username: string): Promise<ProfileRow> {
+export async function setMyUsername(_userId: string, username: string): Promise<ProfileRow> {
   const normalized = sanitizeUsername(username);
 
   const { data: rpcData, error: rpcError } = await supabase.rpc('set_profile_username', {
@@ -73,21 +107,5 @@ export async function setMyUsername(userId: string, username: string): Promise<P
     throw rpcError;
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .upsert(
-      {
-        id: userId,
-        username: normalized,
-      },
-      { onConflict: 'id' },
-    )
-    .select('*')
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data as ProfileRow;
+  throw new Error('Funcao set_profile_username indisponivel no banco. Aplique o patch de username.');
 }

@@ -19,6 +19,7 @@ export type NumericValue = number | string;
 export interface ProfileRow {
   id: string;
   username: string | null;
+  username_changed_at: string | null;
   created_at: string;
   updated_at: string;
 }
