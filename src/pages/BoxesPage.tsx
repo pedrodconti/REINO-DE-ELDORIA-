@@ -17,6 +17,7 @@ import {
 } from '@/services/boxes/boxService';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGameStore } from '@/store/useGameStore';
+import { useGatheringStore } from '@/store/useGatheringStore';
 import { useInventoryStore } from '@/store/useInventoryStore';
 import type { BoxOpenResult, LootBoxShopState } from '@/types/systems';
 import { formatDuration, formatLargeNumber } from '@/utils/format';
@@ -40,6 +41,7 @@ export function BoxesPage() {
   const progress = useGameStore((state) => state.progress);
   const reloadFromCloud = useGameStore((state) => state.reloadFromCloud);
   const loadInventory = useInventoryStore((state) => state.loadInventory);
+  const loadGathering = useGatheringStore((state) => state.loadForUser);
 
   const [shopState, setShopState] = useState<LootBoxShopState>({
     activeRotations: [],
@@ -215,9 +217,16 @@ export function BoxesPage() {
         description: `Voce recebeu ${result.item.name}.`,
       });
 
+      if (result.grantedToolName) {
+        toast.success('Ferramenta desbloqueada', {
+          description: `${result.grantedToolName} foi liberada no modulo de coleta.`,
+        });
+      }
+
       await Promise.all([
         reloadFromCloud(user.id),
         loadInventory(user.id, true),
+        loadGathering(user.id),
         loadHistory(),
         loadShop(),
       ]);

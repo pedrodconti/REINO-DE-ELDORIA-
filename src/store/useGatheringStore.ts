@@ -37,6 +37,7 @@ import type { ActionFeedback } from '@/types/game';
 import { useGameStore } from '@/store/useGameStore';
 import {
   calculateBuildingResourceCost,
+  calculateToolCollectionCooldownMs,
   calculateToolUpgradeCost,
   pickMerchantBuff,
   rollGatherDrops,
@@ -48,6 +49,7 @@ interface GatheringStore {
   buildingDefinitions: BuildingDefinitionRecord[];
   materialQuantities: Record<string, number>;
   buildingOwned: Record<string, number>;
+  lastCollectAtByArea: Record<GatheringAreaKey, number>;
   activeMerchantBuff: MerchantBuffRecord | null;
   recentDrops: GatherDropResult[];
   isLoading: boolean;
@@ -60,6 +62,8 @@ interface GatheringStore {
   upgradeTool: (userId: string, toolKey: string, stat: ToolUpgradeStat) => Promise<ActionFeedback>;
   buyBuilding: (userId: string, buildingKey: string, rebirthCount: number, amuletLimitBonus: number) => Promise<ActionFeedback>;
   sellRareMaterial: (userId: string, materialKey: string, quantity: number) => Promise<ActionFeedback>;
+  getCollectCooldownMs: (areaKey: GatheringAreaKey) => number;
+  getCollectRemainingMs: (areaKey: GatheringAreaKey, nowMs?: number) => number;
   getTotalBuildingCount: () => number;
   getBuildingLimit: (amuletLimitBonus: number) => number;
   getGatheringGoldPerSecond: () => number;
@@ -80,6 +84,10 @@ export const useGatheringStore = create<GatheringStore>((set, get) => ({
   buildingDefinitions: [],
   materialQuantities: {},
   buildingOwned: {},
+  lastCollectAtByArea: {
+    floresta: 0,
+    ravina: 0,
+  },
   activeMerchantBuff: null,
   recentDrops: [],
   isLoading: false,
@@ -151,6 +159,7 @@ export const useGatheringStore = create<GatheringStore>((set, get) => ({
         buildingDefinitions: buildings,
         materialQuantities,
         buildingOwned,
+        lastCollectAtByArea: get().lastCollectAtByArea,
         activeMerchantBuff: activeBuff,
         isLoading: false,
         loadedUserId: userId,
@@ -186,6 +195,17 @@ export const useGatheringStore = create<GatheringStore>((set, get) => ({
         return {
           ok: false,
           message: `Equipe um ${area.toolType === 'machado' ? 'machado' : 'picareta'} para coletar nesta area.`,
+        };
+      }
+
+      const cooldownMs = calculateToolCollectionCooldownMs(equippedTool);
+      const lastCollectedAt = state.lastCollectAtByArea[areaKey] ?? 0;
+      const remainingMs = Math.max(0, lastCollectedAt + cooldownMs - nowMs);
+
+      if (remainingMs > 0) {
+        return {
+          ok: false,
+          message: `Aguarde ${(remainingMs / 1000).toFixed(1)}s para coletar novamente nesta area.`,
         };
       }
 
@@ -225,6 +245,10 @@ export const useGatheringStore = create<GatheringStore>((set, get) => ({
       set({
         materialQuantities: nextMaterialQuantities,
         recentDrops: dropResult.drops,
+        lastCollectAtByArea: {
+          ...state.lastCollectAtByArea,
+          [areaKey]: nowMs,
+        },
         activeMerchantBuff: activeBuff,
       });
 
@@ -242,6 +266,34 @@ export const useGatheringStore = create<GatheringStore>((set, get) => ({
         message: toErrorMessage(error),
       };
     }
+  },
+
+  getCollectCooldownMs: (areaKey) => {
+    const state = get();
+    const area = GATHERING_AREAS.find((entry) => entry.id === areaKey);
+    if (!area) {
+      return 0;
+    }
+
+    const equippedTool = state.toolStates.find((tool) => (
+      tool.definition.toolType === area.toolType && tool.state.isOwned && tool.state.isEquipped
+    ));
+
+    if (!equippedTool) {
+      return 0;
+    }
+
+    return calculateToolCollectionCooldownMs(equippedTool);
+  },
+
+  getCollectRemainingMs: (areaKey, nowMs = Date.now()) => {
+    const lastCollectedAt = get().lastCollectAtByArea[areaKey] ?? 0;
+    const cooldownMs = get().getCollectCooldownMs(areaKey);
+    if (cooldownMs <= 0 || lastCollectedAt <= 0) {
+      return 0;
+    }
+
+    return Math.max(0, lastCollectedAt + cooldownMs - nowMs);
   },
 
   buyTool: async (userId, toolKey) => {
@@ -646,6 +698,10 @@ export const useGatheringStore = create<GatheringStore>((set, get) => ({
       buildingDefinitions: [],
       materialQuantities: {},
       buildingOwned: {},
+      lastCollectAtByArea: {
+        floresta: 0,
+        ravina: 0,
+      },
       activeMerchantBuff: null,
       recentDrops: [],
       isLoading: false,

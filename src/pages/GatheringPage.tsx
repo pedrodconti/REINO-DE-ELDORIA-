@@ -99,6 +99,8 @@ export function GatheringPage() {
   const upgradeTool = useGatheringStore((state) => state.upgradeTool);
   const buyBuilding = useGatheringStore((state) => state.buyBuilding);
   const sellRareMaterial = useGatheringStore((state) => state.sellRareMaterial);
+  const getCollectCooldownMs = useGatheringStore((state) => state.getCollectCooldownMs);
+  const getCollectRemainingMs = useGatheringStore((state) => state.getCollectRemainingMs);
   const getTotalBuildingCount = useGatheringStore((state) => state.getTotalBuildingCount);
   const getBuildingLimit = useGatheringStore((state) => state.getBuildingLimit);
   const getGatheringGoldPerSecond = useGatheringStore((state) => state.getGatheringGoldPerSecond);
@@ -110,6 +112,7 @@ export function GatheringPage() {
   const [upgradeTarget, setUpgradeTarget] = useState<Record<string, ToolUpgradeStat>>({});
   const [sellAmountByMaterial, setSellAmountByMaterial] = useState<Record<string, string>>({});
   const [sessionSeconds, setSessionSeconds] = useState(0);
+  const [nowMs, setNowMs] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -132,8 +135,15 @@ export function GatheringPage() {
   }, [inventoryLoadedUserId, loadInventory, user]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setSessionSeconds((value) => value + 1), 1000);
-    return () => window.clearInterval(timer);
+    const bootstrap = window.setTimeout(() => setNowMs(Date.now()), 0);
+    const timer = window.setInterval(() => {
+      setSessionSeconds((value) => value + 1);
+      setNowMs(Date.now());
+    }, 1000);
+    return () => {
+      window.clearTimeout(bootstrap);
+      window.clearInterval(timer);
+    };
   }, []);
 
   const amuletLimitBonus = useMemo(
@@ -322,6 +332,9 @@ export function GatheringPage() {
               const equippedTool = toolStates.find(
                 (tool) => tool.definition.toolType === area.toolType && tool.state.isOwned && tool.state.isEquipped,
               );
+              const cooldownMs = getCollectCooldownMs(area.id);
+              const cooldownRemainingMs = getCollectRemainingMs(area.id, nowMs);
+              const isOnCooldown = cooldownRemainingMs > 0;
               const isCollecting = collectingArea === area.id;
 
               return (
@@ -344,14 +357,26 @@ export function GatheringPage() {
                     <strong className="text-foreground">
                       {equippedTool ? `${equippedTool.definition.name} (Tier ${equippedTool.definition.tier})` : 'nenhuma'}
                     </strong>
+                    <p className="mt-1">
+                      Cooldown atual: {cooldownMs > 0 ? `${(cooldownMs / 1000).toFixed(2)}s` : '--'}
+                    </p>
+                    {isOnCooldown ? (
+                      <p className="text-amber-200">
+                        Proxima coleta em {Math.max(0.1, cooldownRemainingMs / 1000).toFixed(1)}s
+                      </p>
+                    ) : null}
                   </div>
 
                   <Button
                     className="mt-3 w-full"
-                    disabled={isCollecting || isLoading}
+                    disabled={isCollecting || isLoading || isOnCooldown}
                     onClick={() => void handleCollect(area.id)}
                   >
-                    {isCollecting ? 'Coletando...' : `Coletar em ${area.name}`}
+                    {isCollecting
+                      ? 'Coletando...'
+                      : isOnCooldown
+                        ? `Aguardando ${Math.max(0.1, cooldownRemainingMs / 1000).toFixed(1)}s`
+                        : `Coletar em ${area.name}`}
                   </Button>
                 </motion.div>
               );

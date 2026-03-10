@@ -23,6 +23,8 @@ Jogo web idle/clicker medieval-fantasia em PT-BR com login, save em nuvem, caixa
 - Rotacao de caixas com 1-2 caixas ativas por janela e troca a cada 3 horas.
 - Inventario com secao `Itens Equipados` + botao `Equipar melhores`.
 - Novo modulo de coleta (Floresta e Ravina), ferramentas, construcoes por rebirth e comerciante de materiais raros.
+- Cooldown de coleta por area (reduz com tier da ferramenta + upgrade de velocidade).
+- Ferramentas `box only` com drop na melhor caixa (`caixa_celestial`), incluindo `Machado Cosmico` e `Picareta Cosmica`.
 
 ## Estrutura
 ```txt
@@ -54,6 +56,7 @@ supabase/
   patch_2026_03_09_diagnostic_fixes.sql
   patch_2026_03_09_username_cooldown.sql
   patch_2026_03_10_gathering_mvp.sql
+  patch_2026_03_10_cosmic_tool_drops.sql
 ```
 
 ## 1) Rodar localmente
@@ -91,6 +94,7 @@ Abra **Supabase -> SQL Editor** e rode nesta ordem:
 2. `supabase/patch_2026_03_09_diagnostic_fixes.sql` (correcoes obrigatorias desta versao)
 3. `supabase/patch_2026_03_09_username_cooldown.sql` (cooldown de 30 dias para troca de username)
 4. `supabase/patch_2026_03_10_gathering_mvp.sql` (modulo de coleta + ferramentas + construcoes + comerciante)
+5. `supabase/patch_2026_03_10_cosmic_tool_drops.sql` (drops de ferramentas box-only na caixa celestial + ferramentas cosmicas)
 
 Observacoes:
 - Se voce ja tinha aplicado o patch `2026_03_08`, ainda deve aplicar o `2026_03_09`.

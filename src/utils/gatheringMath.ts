@@ -10,6 +10,9 @@ import type {
 } from '@/types/gathering';
 import type { UserItemRecord } from '@/types/systems';
 
+const BASE_COLLECTION_COOLDOWN_MS = 2200;
+const MIN_COLLECTION_COOLDOWN_MS = 250;
+
 function randomBetween(min: number, max: number): number {
   if (max <= min) {
     return min;
@@ -77,6 +80,17 @@ export function rollGatherDrops(params: {
     areaKey: params.areaKey,
     drops,
   };
+}
+
+export function calculateToolCollectionCooldownMs(tool: ToolWithState): number {
+  const tierReduction = Math.max(0, tool.definition.tier - 1) * 0.12;
+  const speedReduction = tool.upgrades.speedLevel * 0.05;
+  const baseSpeedReduction = tool.definition.baseSpeed * 0.6;
+
+  const totalReduction = Math.min(0.9, tierReduction + speedReduction + baseSpeedReduction);
+  const rawCooldown = BASE_COLLECTION_COOLDOWN_MS * (1 - totalReduction);
+
+  return Math.max(MIN_COLLECTION_COOLDOWN_MS, Math.floor(rawCooldown));
 }
 
 export function calculateToolUpgradeCost(level: number, stat: ToolUpgradeStat) {

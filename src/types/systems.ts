@@ -103,6 +103,8 @@ export interface BoxOpenResult {
   pricePaidSeals: number;
   remainingRebirthCurrency: number;
   remainingDiamonds: number;
+  grantedToolKey?: string | null;
+  grantedToolName?: string | null;
 }
 
 export interface SealConversionResult {

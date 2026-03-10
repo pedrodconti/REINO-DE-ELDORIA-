@@ -196,17 +196,27 @@ function normalizeOpenResult(payload: unknown): BoxOpenResult {
   const parsed = (payload ?? {}) as Partial<BoxOpenResult> & {
     pricePaid?: number;
     remainingResource?: number;
+    grantedToolKey?: string | null;
+    grantedToolName?: string | null;
   };
+  const item = parsed.item as BoxOpenResult['item'];
+  const metadata = (item?.metadata ?? {}) as Record<string, unknown>;
+  const metadataGrantedKey = typeof metadata.grant_tool_key === 'string' ? metadata.grant_tool_key : null;
+  const metadataGrantedName = typeof metadata.grant_tool_name === 'string' ? metadata.grant_tool_name : null;
+  const grantedToolKey = parsed.grantedToolKey ?? metadataGrantedKey;
+  const grantedToolName = parsed.grantedToolName ?? metadataGrantedName;
 
   return {
     lootBoxKey: String(parsed.lootBoxKey ?? ''),
     rotationId: parsed.rotationId ? String(parsed.rotationId) : null,
-    item: parsed.item as BoxOpenResult['item'],
+    item,
     quantity: Number(parsed.quantity ?? 1),
     pricePaidDiamonds: Number(parsed.pricePaidDiamonds ?? parsed.pricePaid ?? 0),
     pricePaidSeals: Number(parsed.pricePaidSeals ?? 0),
     remainingRebirthCurrency: Number(parsed.remainingRebirthCurrency ?? 0),
     remainingDiamonds: Number(parsed.remainingDiamonds ?? 0),
+    grantedToolKey: grantedToolKey ? String(grantedToolKey) : null,
+    grantedToolName: grantedToolName ? String(grantedToolName) : null,
   };
 }
 
