@@ -24,10 +24,10 @@ insert into public.tool_definitions (
   base_rare_drop_chance
 )
 values
-  ('machado_draconico', 'Machado Draconico', 'machado', 6, 'mitico', 0, true, 0.30, 0.24, 0.08, 0.08, 0.07),
-  ('picareta_draconica', 'Picareta Draconica', 'picareta', 6, 'mitico', 0, true, 0.30, 0.24, 0.08, 0.08, 0.07),
-  ('machado_cosmico', 'Machado Cosmico', 'machado', 7, 'mitico', 0, true, 0.38, 0.33, 0.12, 0.11, 0.10),
-  ('picareta_cosmica', 'Picareta Cosmica', 'picareta', 7, 'mitico', 0, true, 0.38, 0.33, 0.12, 0.11, 0.10)
+  ('machado_draconico', 'Machado Draconico', 'machado', 6, 'mitico', 0, true, 0.30, 0.24, 0.08, 50, 0.07),
+  ('picareta_draconica', 'Picareta Draconica', 'picareta', 6, 'mitico', 0, true, 0.30, 0.24, 0.08, 50, 0.07),
+  ('machado_cosmico', 'Machado Cosmico', 'machado', 7, 'mitico', 0, true, 0.38, 0.33, 0.12, 100, 0.10),
+  ('picareta_cosmica', 'Picareta Cosmica', 'picareta', 7, 'mitico', 0, true, 0.38, 0.33, 0.12, 100, 0.10)
 on conflict (tool_key) do update
 set
   name = excluded.name,

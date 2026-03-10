@@ -414,7 +414,7 @@ export const useGatheringStore = create<GatheringStore>((set, get) => ({
               ? tool.upgrades.duplicateLevel
               : tool.upgrades.rareDropLevel;
 
-      const cost = calculateToolUpgradeCost(currentLevel, stat);
+      const cost = calculateToolUpgradeCost(currentLevel, stat, tool.definition.tier);
 
       const wood = state.materialQuantities.madeira ?? 0;
       const stone = state.materialQuantities.pedra ?? 0;

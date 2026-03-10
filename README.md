@@ -25,6 +25,8 @@ Jogo web idle/clicker medieval-fantasia em PT-BR com login, save em nuvem, caixa
 - Novo modulo de coleta (Floresta e Ravina), ferramentas, construcoes por rebirth e comerciante de materiais raros.
 - Cooldown de coleta por area (reduz com tier da ferramenta + upgrade de velocidade).
 - Ferramentas `box only` com drop na melhor caixa (`caixa_celestial`), incluindo `Machado Cosmico` e `Picareta Cosmica`.
+- Picareta Cosmica sem cooldown.
+- Duplicacao base extrema: draconicas 50x, cosmicas 100x.
 
 ## Estrutura
 ```txt
@@ -58,6 +60,7 @@ supabase/
   patch_2026_03_10_gathering_mvp.sql
   patch_2026_03_10_cosmic_tool_drops.sql
   patch_2026_03_10_celestial_drop_rates.sql
+  patch_2026_03_10_extreme_duplicate_tools.sql
 ```
 
 ## 1) Rodar localmente
@@ -97,6 +100,7 @@ Abra **Supabase -> SQL Editor** e rode nesta ordem:
 4. `supabase/patch_2026_03_10_gathering_mvp.sql` (modulo de coleta + ferramentas + construcoes + comerciante)
 5. `supabase/patch_2026_03_10_cosmic_tool_drops.sql` (drops de ferramentas box-only na caixa celestial + ferramentas cosmicas)
 6. `supabase/patch_2026_03_10_celestial_drop_rates.sql` (balanceamento: draconicas 3% cada, cosmicas 0.5% cada)
+7. `supabase/patch_2026_03_10_extreme_duplicate_tools.sql` (draconicas 50x, cosmicas 100x, sem limite <= 1 no banco)
 
 Observacoes:
 - Se voce ja tinha aplicado o patch `2026_03_08`, ainda deve aplicar o `2026_03_09`.

@@ -358,7 +358,7 @@ export function GatheringPage() {
                       {equippedTool ? `${equippedTool.definition.name} (Tier ${equippedTool.definition.tier})` : 'nenhuma'}
                     </strong>
                     <p className="mt-1">
-                      Cooldown atual: {cooldownMs > 0 ? `${(cooldownMs / 1000).toFixed(2)}s` : '--'}
+                      Cooldown atual: {cooldownMs > 0 ? `${(cooldownMs / 1000).toFixed(2)}s` : 'Sem cooldown'}
                     </p>
                     {isOnCooldown ? (
                       <p className="text-amber-200">
@@ -426,7 +426,7 @@ export function GatheringPage() {
                   {toolsByType[toolType].map((tool) => {
                     const selectedUpgrade = upgradeTarget[tool.definition.toolKey] ?? 'yield';
                     const currentLevel = getCurrentUpgradeLevel(tool, selectedUpgrade);
-                    const upgradeCost = calculateToolUpgradeCost(currentLevel, selectedUpgrade);
+                    const upgradeCost = calculateToolUpgradeCost(currentLevel, selectedUpgrade, tool.definition.tier);
 
                     const canBuy = progress.resourceAmount >= tool.definition.buyCostGold;
                     const canUpgrade = progress.resourceAmount >= upgradeCost.gold
