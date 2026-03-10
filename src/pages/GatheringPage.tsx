@@ -3,12 +3,14 @@ import { motion } from 'framer-motion';
 import { Axe, Coins, Hammer, Pickaxe, Trees } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { PixelArtSprite } from '@/components/PixelArtSprite';
 import { StatCard } from '@/components/StatCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ITEM_RARITY_LABELS, ITEM_RARITY_STYLES } from '@/data/items';
+import { getMaterialPixelArt, getToolPixelArt } from '@/data/pixelArt';
 import { GATHERING_AREAS } from '@/data/gathering';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGameStore } from '@/store/useGameStore';
@@ -353,10 +355,21 @@ export function GatheringPage() {
                   </div>
 
                   <div className="mt-3 rounded-lg border border-border/60 bg-card/60 p-3 text-xs text-muted-foreground">
-                    Ferramenta equipada:{' '}
-                    <strong className="text-foreground">
-                      {equippedTool ? `${equippedTool.definition.name} (Tier ${equippedTool.definition.tier})` : 'nenhuma'}
-                    </strong>
+                    <div className="flex items-center gap-2">
+                      {equippedTool ? (
+                        <PixelArtSprite
+                          src={getToolPixelArt(equippedTool.definition.toolKey)}
+                          alt={equippedTool.definition.name}
+                          size={22}
+                        />
+                      ) : null}
+                      <span>
+                        Ferramenta equipada:{' '}
+                        <strong className="text-foreground">
+                          {equippedTool ? `${equippedTool.definition.name} (Tier ${equippedTool.definition.tier})` : 'nenhuma'}
+                        </strong>
+                      </span>
+                    </div>
                     <p className="mt-1">
                       Cooldown atual: {cooldownMs > 0 ? `${(cooldownMs / 1000).toFixed(2)}s` : 'Sem cooldown'}
                     </p>
@@ -392,8 +405,9 @@ export function GatheringPage() {
                 {recentDrops.map((drop, index) => (
                   <Badge
                     key={`${drop.materialKey}-${index}`}
-                    className={drop.rarity === 'raro' ? 'border-amber-500/45 bg-amber-500/10 text-amber-100' : ''}
+                    className={`flex items-center gap-1 ${drop.rarity === 'raro' ? 'border-amber-500/45 bg-amber-500/10 text-amber-100' : ''}`}
                   >
+                    <PixelArtSprite src={getMaterialPixelArt(drop.materialKey)} alt={drop.materialName} size={16} />
                     +{formatLargeNumber(drop.amount)} {drop.materialName}
                   </Badge>
                 ))}
@@ -436,9 +450,18 @@ export function GatheringPage() {
                     return (
                       <div key={tool.definition.id} className="rounded-xl border border-border/70 bg-muted/30 p-3">
                         <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-foreground">{tool.definition.name}</p>
+                          <div className="flex items-start gap-2">
+                            <div className="rounded-md border border-border/70 bg-background/80 p-1.5">
+                              <PixelArtSprite
+                                src={getToolPixelArt(tool.definition.toolKey)}
+                                alt={tool.definition.name}
+                                size={24}
+                              />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground">{tool.definition.name}</p>
                             <p className="text-xs text-muted-foreground">Tier {tool.definition.tier}</p>
+                            </div>
                           </div>
                           <Badge className={ITEM_RARITY_STYLES[tool.definition.rarity]}>
                             {ITEM_RARITY_LABELS[tool.definition.rarity]}
@@ -626,9 +649,14 @@ export function GatheringPage() {
                 return (
                   <div key={material.id} className="rounded-xl border border-border/70 bg-muted/30 p-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-semibold text-foreground">{material.name}</p>
+                      <div className="flex items-start gap-2">
+                        <div className="rounded-md border border-border/70 bg-background/80 p-1.5">
+                          <PixelArtSprite src={getMaterialPixelArt(material.materialKey)} alt={material.name} size={22} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground">{material.name}</p>
                         <p className="text-xs text-muted-foreground">{material.description}</p>
+                        </div>
                       </div>
                       <Badge className="border-amber-500/45 bg-amber-500/10 text-amber-100">Raro</Badge>
                     </div>

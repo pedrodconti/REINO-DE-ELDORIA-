@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2, Clock4, Gem, PackageOpen } from 'lucide-react';
 
+import { PixelArtSprite } from '@/components/PixelArtSprite';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BOX_RARITY_LABELS, BOX_RARITY_STYLES } from '@/data/boxes';
+import { getBoxPixelArt } from '@/data/pixelArt';
 import { BOX_CURRENCY_NAME, REBIRTH_CURRENCY_NAME } from '@/data/theme';
 import type { ActiveLootBoxRotation, BoxRarity } from '@/types/systems';
 import { formatDuration, formatLargeNumber } from '@/utils/format';
@@ -87,10 +89,15 @@ export function BoxCard({
     >
       <div className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Caixa ativa</p>
-            <h3 className="mt-1 text-xl font-semibold text-foreground">{box.name}</h3>
-            <p className="mt-2 max-w-xl text-sm text-muted-foreground">{box.description}</p>
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg border border-border/70 bg-background/80 p-2">
+              <PixelArtSprite src={getBoxPixelArt(box.rarity)} alt={box.name} size={28} />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Caixa ativa</p>
+              <h3 className="mt-1 text-xl font-semibold text-foreground">{box.name}</h3>
+              <p className="mt-2 max-w-xl text-sm text-muted-foreground">{box.description}</p>
+            </div>
           </div>
 
           <Badge className={getRarityStyle(box.rarity)}>{getRarityLabel(box.rarity)}</Badge>

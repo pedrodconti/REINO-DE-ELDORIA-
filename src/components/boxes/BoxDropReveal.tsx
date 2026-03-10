@@ -1,7 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 
+import { BoxSpinTrack } from '@/components/boxes/BoxSpinTrack';
+import { PixelArtSprite } from '@/components/PixelArtSprite';
 import { Badge } from '@/components/ui/badge';
+import { getBoxPixelArt, getToolPixelArt } from '@/data/pixelArt';
 import type { BoxOpenResult, ItemRarity } from '@/types/systems';
 import { ITEM_RARITY_LABELS, ITEM_RARITY_STYLES } from '@/data/items';
 import { formatPassiveEffect } from '@/utils/itemPassives';
@@ -26,6 +29,14 @@ function getRarityLabel(rarity: ItemRarity | string): string {
   return 'Comum';
 }
 
+function getResultSprite(result: BoxOpenResult): string {
+  if (result.grantedToolKey) {
+    return getToolPixelArt(result.grantedToolKey);
+  }
+
+  return getBoxPixelArt(result.item.rarity);
+}
+
 export function BoxDropReveal({ result }: BoxDropRevealProps) {
   return (
     <AnimatePresence mode="wait">
@@ -37,11 +48,19 @@ export function BoxDropReveal({ result }: BoxDropRevealProps) {
           exit={{ opacity: 0, y: -8 }}
           className="ornate-card p-5"
         >
+          <BoxSpinTrack result={result} />
+
           <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Ultima recompensa</p>
           <div className="mt-2 flex items-start justify-between gap-3">
-            <div>
+            <div className="flex items-start gap-3">
+              <div className="mt-1 rounded-lg border border-border/70 bg-background/80 p-2">
+                <PixelArtSprite src={getResultSprite(result)} alt={result.item.name} size={34} />
+              </div>
+
+              <div>
               <h3 className="text-lg font-semibold text-foreground">{result.item.name}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{result.item.description}</p>
+              </div>
             </div>
 
             <Badge className={getRarityStyle(result.item.rarity)}>{getRarityLabel(result.item.rarity)}</Badge>
